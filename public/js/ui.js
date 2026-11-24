@@ -33,6 +33,9 @@ export class UI {
     this.fenster.addEventListener('click', (e) => { if (e.target === this.fenster) this.schliessen(); });
     this.baumodus.addEventListener('click', (e) => { const b = e.target.closest('[data-b]'); if (b) this.spiel.baumodusKnopf(b.dataset.b); });
     this.offen = null;
+    addEventListener('pointerdown', () => { this.zeigerUnten = true; }, true);
+    addEventListener('pointerup', () => { setTimeout(() => { this.zeigerUnten = false; }, 50); }, true);
+    addEventListener('pointercancel', () => { this.zeigerUnten = false; }, true);
   }
 
   // ---------------------------------------------------- Leisten
@@ -121,6 +124,8 @@ export class UI {
     const scrollX = $('.baum-scroll', this.fenster)?.scrollLeft;
     const r = f.call(this, this.offen.arg);
     if (!r) return;
+    if (this.nurWennGeaendert && r.html === this.letztesHtml && r.titel === this.letzterTitel && this.fenster.firstChild) return;
+    this.letztesHtml = r.html; this.letzterTitel = r.titel;
     this.fenster.innerHTML = `<div class="blatt ${r.klasse || ''}"><div class="kopf"><h2>${r.titel}</h2><button class="knopf zu" data-zu>${icon('x')}</button></div><div class="inhalt">${r.html}</div></div>`;
     $('[data-zu]', this.fenster).onclick = () => { this.spiel.ton('klick'); this.schliessen(); };
     const inh = $('.inhalt', this.fenster); inh.scrollTop = scroll;
@@ -131,7 +136,9 @@ export class UI {
     if (!this.offen || this.fenster.hidden) return;
     if (['f_forschung'].includes('f_' + this.offen.art) && this.detailOffen) return;
     if (document.activeElement && this.fenster.contains(document.activeElement) && document.activeElement.tagName === 'INPUT') return;
-    this.rendereFenster();
+    if (this.zeigerUnten) return; // nicht während eines Klicks neu zeichnen
+    this.nurWennGeaendert = true;
+    try { this.rendereFenster(); } finally { this.nurWennGeaendert = false; }
   }
 
   // Bauen (Laden)

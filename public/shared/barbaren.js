@@ -20,7 +20,7 @@ const DORFNAMEN = [
 export const KAMPAGNE = [];
 for (let za = 0; za < 11; za++) for (let k = 0; k < 5; k++) {
   const ref = einheitMacht(['krieger', 'schwertkaempfer', 'langschwert', 'musketier', 'linieninfanterie', 'infanterie', 'mechinfanterie', 'spezialeinheit', 'exosoldat', 'synthkrieger', 'sternenlegionaer'][za], 0);
-  const macht = Math.round(ref * (2.4 + k * 1.9) * (1 + za * 0.55) * Math.pow(1.25, za));
+  const macht = Math.round(ref * (1.5 + k * 1.6) * (1 + za * 0.6) * Math.pow(1.3, za));
   const beute = { gold: Math.round(350 * Math.pow(2.7, za) * (1 + k * 0.6)) };
   if (za >= 1 || k >= 2) beute[BAU_ROHSTOFF[za]] = Math.round(8 * Math.pow(1.5, za) * (1 + k * 0.5));
   KAMPAGNE.push({ nr: KAMPAGNE.length, za, k, name: DORFNAMEN[za][k], macht, beute, boss: k === 4, saat: 1000 + za * 37 + k * 7 });
@@ -31,6 +31,7 @@ const ABWEHR_NACH_ZA = [
   ['wachturm', 'moerser', 'falle', 'bunker', 'flak'], ['wachturm', 'moerser', 'falle', 'bunker', 'flak'], ['wachturm', 'moerser', 'falle', 'bunker', 'flak'],
   ['wachturm', 'moerser', 'falle', 'bunker', 'flak', 'laserturm'], ['wachturm', 'moerser', 'bunker', 'flak', 'laserturm', 'schildgen', 'falle'], ['wachturm', 'moerser', 'bunker', 'flak', 'laserturm', 'schildgen', 'ionenkanone', 'falle'],
 ];
+const ABWEHR_WERT = 0.6; // Türme zählen bei der Stärke-Schätzung weniger, weil sie sich nicht bewegen
 const LINIEN_NACH_ZA = (za) => ['nahkampf', 'fern', 'speer', 'kav', ...(za >= 5 ? ['luft'] : [])];
 
 /** Erzeugt ein Dorf (Basis für den Kampf). */
@@ -63,16 +64,16 @@ export function erzeugeDorf({ saat, macht, za }) {
     const typ = typen[n % typen.length];
     if (typ === 'falle' && n > 8) { n++; continue; }
     const st = Math.max(1, L + (rnd() < 0.3 ? 1 : 0) - (n > 6 ? 1 : 0));
-    if (platziere(typ, st, 2.5, ring - 1.5)) abwehr += abwehrMacht(typ, st);
+    if (platziere(typ, st, 2.5, ring - 1.5)) abwehr += abwehrMacht(typ, st) * ABWEHR_WERT;
     n++;
   }
-  ringFelder.forEach(([x, y], i) => { if (!lueckenAt.has(i) && !lueckenAt.has(i - 2) && frei('mauer', x, y)) setze('mauer', x, y, Math.max(1, L - 1)); });
+  if (macht > 330) ringFelder.forEach(([x, y], i) => { if (!lueckenAt.has(i) && !lueckenAt.has(i - 2) && frei('mauer', x, y)) setze('mauer', x, y, Math.max(1, L - 1)); });
   // Wirtschaft (Beute-Gebäude) innen und außen
   for (const typ of ['goldmine', 'schatzkammer', 'unterkunft', 'kaserne', 'goldmine', 'handwerkerhuette']) platziere(typ, Math.max(1, L - 1), 3, ring + 4);
   if (za >= 1) platziere('rohstofflager', L - 1, 3, ring - 1);
   for (let k = 0; k < 5; k++) platziere('baum', 1, ring + 2, 17);
   // Besatzung
-  const einh = []; let rest = Math.max(macht - abwehr, macht * 0.35);
+  const einh = []; let rest = Math.max(macht - abwehr, macht * 0.3);
   const linien = LINIEN_NACH_ZA(za);
   const kandidaten = Object.values(EINHEITEN).filter((d) => d.zeitalter === za && linien.includes(d.linie) && d.linie !== 'belagerung');
   let schutz = 0;
@@ -90,7 +91,7 @@ export function erzeugeDorf({ saat, macht, za }) {
 
 export function dorfMacht(basis) {
   let m = 0;
-  for (const g of basis.gebaeude) m += abwehrMacht(g.typ, g.stufe);
+  for (const g of basis.gebaeude) m += abwehrMacht(g.typ, g.stufe) * ABWEHR_WERT;
   for (const u of basis.einheiten) m += einheitMacht(u.typ, u.stufe);
   return m;
 }
@@ -99,7 +100,7 @@ export function dorfMacht(basis) {
 export const BARBAREN_NEU_NACH = 3 * 3600000;
 export function neueBarbaren(macht, za, jetzt, saat) {
   const rnd = zufall(saat);
-  const art = [['Leichtes Dorf', 0.65, 0.55], ['Dorf', 0.95, 1], ['Starkes Dorf', 1.3, 1.7]];
+  const art = [['Leichtes Dorf', 0.55, 0.55], ['Dorf', 0.8, 1], ['Starkes Dorf', 1.1, 1.7]];
   return {
     zeit: jetzt,
     liste: art.map(([titel, f, b], i) => {

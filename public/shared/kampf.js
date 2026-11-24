@@ -108,7 +108,7 @@ export class Kampf {
   feld(b) {
     let f = this.felder.get(b.i);
     if (f) return f;
-    f = new Float32Array(N * N).fill(1e9);
+    f = new Float64Array(N * N).fill(1e9);
     const offen = [];
     for (let y = b.y - 1; y <= b.y + b.gr; y++) for (let x = b.x - 1; x <= b.x + b.gr; x++) {
       if (x < 0 || y < 0 || x >= N || y >= N) continue;
@@ -173,6 +173,8 @@ export class Kampf {
       for (const f of feinde) if (!f.tot && f.seite === 'v' && (!f.flug || u.trifftLuft || u.flug)) { const d = (f.x - u.x) ** 2 + (f.y - u.y) ** 2; if (d < bd) { bd = d; best = f; } }
       if (best) z = u.ziel = best;
     }
+    // Wer von einem nahen Turm beschossen wird, greift diesen an
+    if (u.seite === 'a' && u.beschossen && !u.beschossen.weg && (!z || (!z.seite && !z.abwehr && !z.mauer)) && this.abstandGeb(u.x, u.y, u.beschossen) < 6) z = u.ziel = u.beschossen;
     if (!z) z = u.ziel = this.neuesZiel(u);
     if (!z) { u.laeuft = false; return; }
     // In Reichweite?
@@ -291,6 +293,7 @@ export class Kampf {
     if (!best) return;
     b.cd = a.rate;
     this.ereignisse.push({ art: 'turm', typ: b.typ, ax: cx, ay: cy, zx: best.x, zy: best.y, flug: best.flug });
+    for (const u of this.einheiten) if (!u.tot && u.seite === 'a' && (u.x - best.x) ** 2 + (u.y - best.y) ** 2 < 16) u.beschossen = b;
     if (a.flaeche) this.flaechenSchaden(best.x, best.y, a.flaeche, a.schaden, 'a', false, best);
     else this.treffe(best, a.schaden);
     if (a.kette) {

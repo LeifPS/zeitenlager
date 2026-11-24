@@ -166,7 +166,7 @@ export function einheitMacht(typ, stufe) {
 // kosten/zeit: Grundwert für Stufe 1, wachsen pro Stufe. max(zl): höchste Stufe bei Zentrum-Stufe zl. anzahl(zl): wie viele man bauen darf.
 const G = (o) => o;
 export const GEBAEUDE = {
-  zentrum: G({ name: 'Zentrum', gr: 4, kat: 'wirtschaft', hp: 1800, kosten: 0, zeit: 0, max: () => 11, anzahl: () => 1,
+  zentrum: G({ name: 'Zentrum', gr: 4, kat: 'wirtschaft', hp: 900, kosten: 0, zeit: 0, max: () => 11, anzahl: () => 1,
     text: 'Das Herz deines Lagers. Die Stufe des Zentrums ist dein Zeitalter. Bestimmt, wie hoch und wie viele Gebäude du bauen darfst.' }),
   goldmine: G({ name: 'Goldmine', gr: 3, kat: 'wirtschaft', hp: 500, kosten: 150, zeit: 20, max: (zl) => zl * 2, anzahl: (zl) => Math.min(7, 1 + Math.ceil(zl * 0.6)),
     text: 'Fördert Gold. Die Mine füllt sich bis zu 2 Stunden lang; tippe sie an, um das Gold einzusammeln.' }),
@@ -195,10 +195,10 @@ export const GEBAEUDE = {
   ruestkammer: G({ name: 'Rüstkammer', gr: 3, kat: 'militaer', hp: 650, kosten: 8000, zeit: 300, max: (zl) => zl * 2, anzahl: () => 1, tech: 'militaertaktik',
     text: 'Rüstet eine Einheit auf die Einheit des nächsten Zeitalters ihrer Linie auf. Die Stufe (Sterne) bleibt erhalten.' }),
 
-  mauer: G({ name: 'Mauer', gr: 1, kat: 'verteidigung', hp: 420, kosten: 30, zeit: 0, max: (zl) => zl * 2, anzahl: (zl) => Math.min(250, 20 + zl * 22), tech: 'steinmetz', mauer: true,
+  mauer: G({ name: 'Mauer', gr: 1, kat: 'verteidigung', hp: 300, kosten: 30, zeit: 0, max: (zl) => zl * 2, anzahl: (zl) => Math.min(250, 20 + zl * 22), tech: 'steinmetz', mauer: true,
     text: 'Hält Angreifer auf. Nahkämpfer müssen sich durchschlagen oder einen Weg drumherum finden.' }),
-  wachturm: G({ name: 'Wachturm', gr: 2, kat: 'verteidigung', hp: 560, kosten: 250, zeit: 30, max: (zl) => zl * 2, anzahl: (zl) => Math.min(8, 1 + zl), tech: 'steinmetz',
-    abwehr: { schaden: 16, rw: 6.5, rate: 1.0, luft: true, boden: true },
+  wachturm: G({ name: 'Wachturm', gr: 2, kat: 'verteidigung', hp: 400, kosten: 250, zeit: 30, max: (zl) => zl * 2, anzahl: (zl) => Math.min(8, 1 + zl), tech: 'steinmetz',
+    abwehr: { schaden: 11, rw: 6.5, rate: 1.0, luft: true, boden: true },
     text: 'Schießt auf Angreifer in Reichweite, auch auf Flugzeuge.' }),
   moerser: G({ name: 'Wurfturm', gr: 3, kat: 'verteidigung', hp: 700, kosten: 2500, zeit: 120, max: (zl) => zl * 2, anzahl: (zl) => Math.min(4, Math.floor(zl / 2)), tech: 'mathematik',
     abwehr: { schaden: 40, rw: 8, minRw: 3, rate: 3.5, flaeche: 1.4, boden: true },

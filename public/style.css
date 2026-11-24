@@ -233,3 +233,50 @@ h2, h3, .titel, .logo, .knopf, .tab, .zeitalter, .tn, .za-kopf { font-family: 'L
 .sterne .ic { width: 15px; height: 15px; }
 .az-anz { display: flex; flex-direction: column; align-items: center; line-height: 1; }
 .az-anz small { font-family: 'Nunito'; font-size: 10px; color: #7a5a3a; }
+
+/* ---------- Angriff ---------- */
+.kampf-seiten { position: absolute; inset: 0; pointer-events: none; z-index: 2; }
+.seiten-knopf { position: absolute; pointer-events: auto; width: 58px; height: 58px; border: 3px solid var(--rand); border-radius: 50%; background: linear-gradient(#fff4d6, #f0cf8a); box-shadow: 0 4px 0 var(--rand); display: flex; align-items: center; justify-content: center; }
+.seiten-knopf .ic { width: 34px; height: 34px; }
+.seiten-knopf.an { background: linear-gradient(#9fd0ff, #3d7fd6); box-shadow: 0 4px 0 var(--rand), 0 0 0 4px #fff; }
+.seiten-knopf.ol { left: 18%; top: 26%; } .seiten-knopf.ol .ic { transform: rotate(30deg); }
+.seiten-knopf.or { right: 18%; top: 26%; } .seiten-knopf.or .ic { transform: rotate(150deg); }
+.seiten-knopf.ur { right: 18%; bottom: 30%; } .seiten-knopf.ur .ic { transform: rotate(-150deg); }
+.seiten-knopf.ul { left: 18%; bottom: 30%; } .seiten-knopf.ul .ic { transform: rotate(-30deg); }
+.vb-unten .kampf-armee { display: flex; gap: 4px; padding: 4px 8px; border: 2.5px solid var(--rand); border-radius: 12px; background: rgba(20,14,8,.7); max-width: 60vw; overflow-x: auto; align-items: center; }
+.ka-e { position: relative; width: 48px; text-align: center; color: #fff; font-family: 'Lilita One'; }
+.ka-e img { width: 44px; height: 44px; display: block; margin: 0 auto -6px; }
+.ka-e b { font-weight: 400; text-shadow: 0 1px 0 #000, 0 0 2px #000; font-size: 14px; }
+.ka-e .sterne { position: absolute; top: -2px; left: 0; right: 0; justify-content: center; }
+.ka-e .sterne .ic { width: 9px; height: 9px; }
+.kampf-info { display: flex; align-items: center; gap: 6px; padding: 6px 10px; border: 2.5px solid var(--rand); border-radius: 12px; background: var(--papier); font-size: 14px; }
+.mini-stern .ic { width: 16px; height: 16px; filter: grayscale(1) brightness(.6); }
+.mini-stern.an .ic { filter: none; }
+.sterne-gross { display: flex; justify-content: center; gap: 4px; margin: 4px 0; }
+.gross-stern .ic { width: 54px; height: 54px; filter: grayscale(1) brightness(.55); }
+.gross-stern.an .ic { filter: drop-shadow(0 0 6px #ffd23f); animation: sternpop .5s ease-out both; }
+.gross-stern:nth-child(2).an .ic { animation-delay: .25s; } .gross-stern:nth-child(3).an .ic { animation-delay: .5s; }
+@keyframes sternpop { from { transform: scale(0) rotate(-60deg); } 70% { transform: scale(1.3); } }
+.vb-panel h3.sieg { color: var(--gruen2); font-size: 30px; } .vb-panel h3.niederlage { color: var(--rot2); font-size: 30px; }
+.vb-panel p { margin: 6px 0; display: flex; gap: 6px; justify-content: center; align-items: center; flex-wrap: wrap; }
+.za-titel { margin: 12px 0 6px; padding-left: 8px; border-left: 6px solid var(--za); }
+.kampagne { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 8px; }
+.kamp-k, .dorf-k { display: flex; flex-direction: column; gap: 3px; align-items: center; padding: 10px; border: 2.5px solid var(--rand); border-radius: 14px; background: linear-gradient(#fffaf0, #f2dfb5); box-shadow: 0 4px 0 rgba(0,0,0,.25); text-align: center; position: relative; }
+.kamp-k b, .dorf-k b { font-family: 'Lilita One'; font-weight: 400; font-size: 15px; }
+.kamp-k small, .dorf-k small { color: #7a5a3a; font-size: 12px; }
+.kamp-k.aktuell { background: linear-gradient(#ffe48a, #e3a52a); box-shadow: 0 4px 0 rgba(0,0,0,.3), 0 0 0 3px #fff; animation: puls 1.6s infinite; }
+@keyframes puls { 50% { box-shadow: 0 4px 0 rgba(0,0,0,.3), 0 0 0 3px #fff, 0 0 18px 4px #ffd23f; } }
+.kamp-k.fertig { background: linear-gradient(#d9f7d2, #9fd98f); }
+.kamp-k.zu { filter: grayscale(.8); opacity: .6; }
+.kamp-k.boss { border-color: #8a1d14; border-width: 3.5px; }
+.dorf-k.besiegt { filter: grayscale(.9); opacity: .6; }
+.dorf-k em { position: absolute; top: 8px; right: -6px; transform: rotate(12deg); background: var(--rot); color: #fff; font-style: normal; padding: 2px 8px; border: 2px solid var(--rand); border-radius: 6px; }
+.berichte { display: flex; flex-direction: column; gap: 8px; }
+.bericht { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 8px 10px; border: 2.5px solid var(--rand); border-radius: 12px; background: #fffaf0; }
+.bericht.verteidigung { background: #ffece6; }
+.bericht > div { display: flex; flex-direction: column; gap: 2px; }
+.bericht small { color: #6b4c2c; display: flex; align-items: center; gap: 3px; flex-wrap: wrap; }
+.rang { width: 100%; border-collapse: collapse; font-size: 14px; }
+.rang td { padding: 4px 6px; border-bottom: 1.5px dashed rgba(0,0,0,.15); }
+.rang tr.ich { background: #fff3c4; }
+@media (max-width: 720px) { .seiten-knopf { width: 48px; height: 48px; } .seiten-knopf.ol, .seiten-knopf.ul { left: 6%; } .seiten-knopf.or, .seiten-knopf.ur { right: 6%; } .vb-unten .kampf-armee { max-width: 92vw; } }

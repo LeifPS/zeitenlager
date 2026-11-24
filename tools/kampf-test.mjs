@@ -1,0 +1,18 @@
+import { chromium } from 'playwright-core';
+const b = await chromium.launch({ executablePath: '/usr/bin/google-chrome', args: ['--no-sandbox'] });
+const p = await b.newPage({ viewport: { width: 1300, height: 820 } });
+const fehler = []; p.on('pageerror', (e) => fehler.push(e.message)); p.on('console', (m) => { if (m.type() === 'error' && !m.text().includes('404')) fehler.push(m.text()); });
+await p.goto('http://127.0.0.1:8787');
+await p.waitForTimeout(800);
+await p.fill('input[name=name]', process.env.NAME || 'tester'); await p.fill('input[name=pw]', 'geheim123'); await p.click('button[type=submit]');
+await p.waitForFunction(() => !document.querySelector('#spiel').hidden);
+await p.click('[data-u=angriff]'); await p.waitForTimeout(600);
+await p.screenshot({ path: '/tmp/a1.png' });
+await p.click('.kamp-k.aktuell'); await p.waitForTimeout(800);
+await p.screenshot({ path: '/tmp/a2.png' });
+await p.click('[data-los]'); await p.waitForTimeout(6000);
+await p.screenshot({ path: '/tmp/a3.png' });
+await p.click('[data-skip]').catch(() => {}); await p.waitForTimeout(3000);
+await p.screenshot({ path: '/tmp/a4.png' });
+console.log('Fehler:', fehler.join('\n') || 'keine');
+await b.close();
