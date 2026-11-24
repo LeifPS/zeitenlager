@@ -180,7 +180,7 @@ class Karte {
       const hier = s.handwerker.filter((h) => h.x === x && h.y === y);
       const frei = R.handwerkerAnzahl(s, e) - s.handwerker.filter((h) => !h.stopp).length;
       html = `<h3><span class="ressym gross">${icon(r)}</span> ${ROHSTOFFE[r].name}-Feld</h3>
-        <p class="hinweis">Liefert unbegrenzt. Pro Runde: ${dauer(weg)} hin, ${dauer(arbeit)} Arbeit, ${dauer(weg)} zurück → <b>${ladung} ${ROHSTOFFE[r].name}</b>. Handwerker laufen immer wieder, solange du in den letzten 2 Stunden im Spiel warst.</p>
+        <p class="hinweis">Liefert unbegrenzt. Pro Runde: ${dauer(weg)} hin, ${dauer(arbeit)} Arbeit, ${dauer(weg)} zurück, Ertrag <b>${ladung} ${ROHSTOFFE[r].name}</b>. Handwerker laufen immer wieder, solange du in den letzten 2 Stunden im Spiel warst.</p>
         ${hier.length ? `<p>${hier.length} Handwerker arbeiten hier.</p>` : ''}
         <button class="knopf gruen" data-hw ${frei < 1 ? 'disabled' : ''}>${icon('handwerker')} Handwerker schicken (${Math.max(0, frei)} frei)</button>
         ${hier.filter((h) => !h.stopp).length ? `<button class="knopf rot" data-zurueck="${hier.find((h) => !h.stopp).id}">Einen zurückrufen</button>` : ''}`;

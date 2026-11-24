@@ -23,6 +23,7 @@ const ICONS = {
   auge: S(`<path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z" fill="#fff" stroke="${R}" stroke-width="1.5"/><circle cx="12" cy="12" r="3.6" fill="#3b7fd6" stroke="${R}" stroke-width="1.2"/><circle cx="13" cy="11" r="1" fill="#fff"/>`),
   heilen: S(`<rect x="3" y="3" width="18" height="18" rx="5" fill="#fff" stroke="${R}" stroke-width="1.5"/><path d="M12 7v10M7 12h10" stroke="#3ccf7a" stroke-width="3.4" stroke-linecap="round"/>`),
   verschieben: S(`<path d="M12 2l3 3h-2v6h6V9l3 3-3 3v-2h-6v6h2l-3 3-3-3h2v-6H5v2l-3-3 3-3v2h6V5H9z" fill="#fff" stroke="${R}" stroke-width="1.2" stroke-linejoin="round"/>`),
+  pfeilrechts: S(`<path d="M3 9h10V4l8 8-8 8v-5H3z" fill="#58d68d" stroke="${R}" stroke-width="1.5" stroke-linejoin="round"/>`),
   pfeilhoch: S(`<path d="M12 3l7 8h-4v9H9v-9H5z" fill="#58d68d" stroke="${R}" stroke-width="1.5" stroke-linejoin="round"/>`),
   blitz: S(`<path d="M13 2L5 13h6l-1 9 8-12h-6z" fill="#ffd23f" stroke="${R}" stroke-width="1.4" stroke-linejoin="round"/>`),
   x: S(`<path d="M6 6l12 12M18 6L6 18" stroke="${R}" stroke-width="3.4" stroke-linecap="round"/><path d="M6 6l12 12M18 6L6 18" stroke="#ff6b5c" stroke-width="1.8" stroke-linecap="round"/>`),
@@ -48,6 +49,10 @@ const FORM = {
   helium3: (f) => `<circle cx="12" cy="12" r="8" fill="${f}" stroke="${R}" stroke-width="1.4"/><ellipse cx="12" cy="12" rx="10.5" ry="3.5" fill="none" stroke="${R}" stroke-width="1.3" transform="rotate(-25 12 12)"/><circle cx="9.5" cy="9.5" r="2" fill="#fff" opacity=".7"/>`,
 };
 
+export function sterneHtml(n, farbe) {
+  const st = `<path d="M12 2.5l2.8 5.8 6.3.9-4.6 4.4 1.1 6.3L12 17l-5.6 2.9 1.1-6.3-4.6-4.4 6.3-.9z" fill="${farbe}" stroke="${R}" stroke-width="1.6" stroke-linejoin="round"/>`;
+  return `<span class="sterne">${Array.from({ length: n }, () => S(st)).join('')}</span>`;
+}
 export function icon(name) {
   if (ICONS[name]) return ICONS[name];
   if (ROHSTOFFE[name]) return S(FORM[name](ROHSTOFFE[name].farbe));

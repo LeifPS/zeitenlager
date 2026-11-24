@@ -5,7 +5,7 @@ import {
   heilSlots, ausbildungsZeitalter, handwerkerTraglast,
 } from '../shared/daten.js';
 import * as R from '../shared/regeln.js';
-import { icon } from './icons.js';
+import { icon, sterneHtml } from './icons.js';
 import { zahl, dauer, esc } from './format.js';
 import { einheitPortrait, gebaeudePortrait } from './grafik.js';
 
@@ -46,7 +46,7 @@ export class UI {
     this.oben.innerHTML = `
       <div class="balkenbox gold" title="Gold"><span class="ic-gross">${icon('gold')}</span><div class="bb"><b>${zahl(s.gold)}</b><i style="width:${Math.min(100, s.gold / gm * 100)}%"></i></div><small>max ${zahl(gm)}</small></div>
       <div class="balkenbox platz" title="Platz für Einheiten"><span class="ic-gross">${icon('platz')}</span><div class="bb"><b>${pb}/${pm}</b><i style="width:${Math.min(100, pb / pm * 100)}%"></i></div></div>
-      ${res.length ? `<button class="resleiste" data-u="rohstoffe" title="Rohstoffe (max ${zahl(rm)} je Sorte)">${res.slice(0, 6).map((r) => `<span>${icon(r)}${zahl(s.res[r])}</span>`).join('')}${res.length > 6 ? '<span>…</span>' : ''}</button>` : ''}
+      ${res.length ? `<button class="resleiste" data-u="rohstoffe" title="Rohstoffe (max ${zahl(rm)} je Sorte)">${res.slice(0, 6).map((r) => `<span>${icon(r)}${zahl(s.res[r])}</span>`).join('')}${res.length > 6 ? `<span>+${res.length - 6}</span>` : ''}</button>` : ''}
       <div class="zeitalter" style="--za:${ZEITALTER[za].farbe}" title="Dein Zeitalter">${ZEITALTER[za].name}</div>
       <div class="ruhm" title="Ruhm">${icon('ruhm')}<b>${zahl(s.ruhm)}</b></div>`;
     const rl = $('.resleiste', this.oben); if (rl) rl.onclick = () => this.oeffne('rohstoffe');
@@ -196,7 +196,7 @@ export class UI {
   }
   gebaeudeWerte(typ, st, ziel, s) {
     const zeilen = [];
-    const z = (name, a, b) => zeilen.push(`<tr><td>${name}</td><td>${a}</td><td class="neu">${b != null && b !== a ? '→ ' + b : ''}</td></tr>`);
+    const z = (name, a, b) => zeilen.push(`<tr><td>${name}</td><td>${a}</td><td class="neu">${b != null && b !== a ? icon('pfeilrechts') + ' ' + b : ''}</td></tr>`);
     const hatZiel = ziel <= GEBAEUDE[typ].max(11) && GEBAEUDE[typ].kat !== 'deko';
     const st1 = Math.max(1, st);
     if (typ === 'goldmine') { const f = 1 + R.effekte(s).gold; z('Gold pro Stunde', zahl(goldProStunde(st1) * f), hatZiel ? zahl(goldProStunde(ziel) * f) : null); z('Fasst', zahl(goldProStunde(st1) * f * PRODUKTION_MAX_STUNDEN), hatZiel ? zahl(goldProStunde(ziel) * f * PRODUKTION_MAX_STUNDEN) : null); }
@@ -205,7 +205,7 @@ export class UI {
     if (typ === 'unterkunft') z('Platz', platzVon(st1), hatZiel ? platzVon(ziel) : null);
     if (typ === 'akademie') z('Wissen pro Stunde', zahl(forschungsTempo(st1)), hatZiel ? zahl(forschungsTempo(ziel)) : null);
     if (typ === 'heilhaus') z('Heilt gleichzeitig', heilSlots(st1), hatZiel ? heilSlots(ziel) : null);
-    if (typ === 'handwerkerhuette') z('Traglast', '×' + handwerkerTraglast(st1).toFixed(2), hatZiel ? '×' + handwerkerTraglast(ziel).toFixed(2) : null);
+    if (typ === 'handwerkerhuette') z('Traglast', Math.round(handwerkerTraglast(st1) * 100) + ' %', hatZiel ? Math.round(handwerkerTraglast(ziel) * 100) + ' %' : null);
     if (LINIE_GEBAEUDE && Object.values(LINIE_GEBAEUDE).includes(typ)) z('Bildet aus bis', ZEITALTER[ausbildungsZeitalter(st1)].name, hatZiel ? ZEITALTER[ausbildungsZeitalter(ziel)].name : null);
     const a = abwehrWerte(typ, st1); if (a) z('Schaden', zahl(a.schaden), hatZiel ? zahl(abwehrWerte(typ, ziel).schaden) : null);
     if (a) z('Reichweite', a.rw + ' Felder');
@@ -274,11 +274,11 @@ export class UI {
       const folge = EINHEIT_FOLGE[g.typ];
       return `<div class="armee-z">
         <img src="${einheitPortrait(g.typ, g.stufe)}" alt="">
-        <div class="az-text"><b>${d.name}</b> <span class="stufen-name" style="--st:${st.farbe}">${st.sterne ? '★'.repeat(Math.min(5, st.sterne)) + ' ' : ''}${st.name}${g.stufe ? ' ' + ROEMISCH[g.stufe] : ''}</span>
+        <div class="az-text"><b>${d.name}</b> <span class="stufen-name" style="--st:${st.farbe}">${st.sterne ? sterneHtml(Math.min(5, st.sterne), st.farbe) + ' ' : ''}${st.name}${g.stufe ? ' ' + ROEMISCH[g.stufe] : ''}</span>
           <small>LP ${zahl(w.hp)} · Schaden ${zahl(w.schaden)} · ${LINIEN[d.linie].name}</small>
           ${verw.length ? `<small class="verw">${icon('heilen')} ${verw.length} verwundet${verw.map((u) => { const h = s.heilung.find((x) => x.eid === u.id); return h ? ' · ' + dauer(h.bis - jetzt) : ''; }).join('')}</small>` : ''}
         </div>
-        <div class="az-anz">×${g.liste.length}</div>
+        <div class="az-anz"><small>Anzahl</small>${g.liste.length}</div>
         <div class="az-knoepfe">
           ${gesund.length >= 2 && g.stufe < 7 ? `<button class="knopf gruen klein2" data-merge="${g.typ}|${g.stufe}">${icon('stern')} Mergen</button>` : ''}
           ${verw.length ? `<button class="knopf gold klein2" data-heil="${verw[0].id}">${icon('blitz')} Heilen ${zahl(R.sofortGold(s.heilung.find((x) => x.eid === verw[0].id)?.bis - jetzt || R.heilDauerVon(s, verw[0]), s) + R.heilKosten(verw[0]))}</button>` : ''}
@@ -290,7 +290,7 @@ export class UI {
     let aufInfo = '';
     if (this.aufFrage) {
       const u = s.einheiten.find((x) => x.id === this.aufFrage);
-      if (u && EINHEIT_FOLGE[u.typ]) aufInfo = `<div class="frage">Aufrüsten: ${EINHEITEN[u.typ].name} ${STUFEN[u.stufe].name} → <b>${EINHEITEN[EINHEIT_FOLGE[u.typ]].name}</b> (${dauer(R.aufruestDauer(s, u))})<div class="kostenzeile">${kostenHtml(s, R.aufruestKosten(u))}</div><button class="knopf gruen" data-aufja="${u.id}">Aufrüsten</button> <button class="knopf" data-aufnein>Abbrechen</button></div>`;
+      if (u && EINHEIT_FOLGE[u.typ]) aufInfo = `<div class="frage">Aufrüsten: ${EINHEITEN[u.typ].name} ${STUFEN[u.stufe].name} ${icon('pfeilrechts')} <b>${EINHEITEN[EINHEIT_FOLGE[u.typ]].name}</b> (${dauer(R.aufruestDauer(s, u))})<div class="kostenzeile">${kostenHtml(s, R.aufruestKosten(u))}</div><button class="knopf gruen" data-aufja="${u.id}">Aufrüsten</button> <button class="knopf" data-aufnein>Abbrechen</button></div>`;
     }
     return {
       titel: 'Deine Armee', klasse: 'breit',

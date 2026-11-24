@@ -229,3 +229,7 @@ h2, h3, .titel, .logo, .knopf, .tab, .zeitalter, .tn, .za-kopf { font-family: 'L
 .hw-z { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; justify-content: center; padding: 4px 0; font-size: 13.5px; border-bottom: 1.5px dashed rgba(0,0,0,.15); }
 .vb-panel h3 { display: flex; align-items: center; justify-content: center; gap: 6px; }
 .vb-panel .knopf { margin: 3px; }
+.sterne { display: inline-flex; gap: 1px; vertical-align: -2px; }
+.sterne .ic { width: 15px; height: 15px; }
+.az-anz { display: flex; flex-direction: column; align-items: center; line-height: 1; }
+.az-anz small { font-family: 'Nunito'; font-size: 10px; color: #7a5a3a; }
