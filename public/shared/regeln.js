@@ -6,7 +6,7 @@ import {
   bauKosten, bauZeit, goldProStunde, goldLager, zentrumGoldLager, rohstoffLager, zentrumRohstoffLager, platzVon,
   forschungsTempo, handwerkerTraglast, handwerkerTempo, heilSlots, heilFaktor, ausbildungFaktor, ausbildungsZeitalter,
 } from './daten.js';
-import { feldRohstoff, sichtbar, abstand, START_SICHT, KUNDSCHAFT_SICHT, HANDWERKER_FELDER_PRO_MIN, KUNDSCHAFTER_FELDER_PRO_MIN } from './karte.js';
+import { feldRohstoff, biom, hash, sichtbar, abstand, START_SICHT, KUNDSCHAFT_SICHT, HANDWERKER_FELDER_PRO_MIN, KUNDSCHAFTER_FELDER_PRO_MIN } from './karte.js';
 
 export const VERSION = 1;
 const H = 3600000;
@@ -26,6 +26,7 @@ export function neuerZustand(name, heim, jetzt) {
     ruhm: 0, schildBis: 0, neulingBis: jetzt + NEULINGSSCHUTZ, kampagne: 0, siege: 0, tutorial: 0, meldungen: [],
   };
   for (const r of ROHSTOFF_IDS) s.res[r] = 0;
+  s.startfelder = startFelder(heim);
   const m = LAGER_GROESSE / 2;
   baueSofort(s, 'zentrum', m - 2, m - 2, 1);
   baueSofort(s, 'goldmine', m + 4, m - 3, 1, jetzt);
@@ -37,6 +38,22 @@ export function neuerZustand(name, heim, jetzt) {
   for (let i = 0; i < 3; i++) s.einheiten.push({ id: s.nid++, typ: 'krieger', stufe: 0 });
   s.einheiten.push({ id: s.nid++, typ: 'schleuderer', stufe: 0 });
   return s;
+}
+// Jeder Spieler bekommt nahe Felder mit den ersten Rohstoffen, damit niemand Pech mit der Karte hat
+function startFelder(heim) {
+  const wunsch = ['kupfer', 'pferde', 'kupfer', 'eisen', 'pferde', 'eisen'];
+  const f = [];
+  for (let i = 0; i < 400 && f.length < wunsch.length; i++) {
+    const w = (hash(heim.x, heim.y, i) % 6283) / 1000, r = 2.5 + (hash(heim.y, heim.x, i) % 30) / 10;
+    const x = Math.round(heim.x + Math.cos(w) * r), y = Math.round(heim.y + Math.sin(w) * r);
+    if (biom(x, y) === 'wasser' || feldRohstoff(x, y) || f.some((q) => Math.abs(q.x - x) + Math.abs(q.y - y) < 2)) continue;
+    f.push({ x, y, res: wunsch[f.length] });
+  }
+  return f;
+}
+export function rohstoffAuf(s, x, y) {
+  const st = (s.startfelder || []).find((q) => q.x === x && q.y === y);
+  return st ? st.res : feldRohstoff(x, y);
 }
 function baueSofort(s, typ, x, y, stufe, jetzt) {
   const g = { id: s.nid++, typ, x, y, stufe };
@@ -260,6 +277,7 @@ export function wegDauer(s, ziel, proMin, e = effekte(s)) {
 }
 function handwerkerSchritt(s, h) {
   const e = effekte(s);
+  h.ab = s.zeit;
   if (h.phase === 'hin') { h.phase = 'arbeit'; h.naechste = s.zeit + ROHSTOFFE[h.res].dauer * MIN / handwerkerTempo(handwerkerStufe(s)); }
   else if (h.phase === 'arbeit') { h.phase = 'zurueck'; h.naechste = s.zeit + wegDauer(s, h, HANDWERKER_FELDER_PRO_MIN * handwerkerTempo(handwerkerStufe(s)), e); }
   else if (h.phase === 'zurueck') {
@@ -271,6 +289,7 @@ function handwerkerSchritt(s, h) {
   }
 }
 function kundschafterSchritt(s, k) {
+  k.ab = s.zeit;
   if (k.phase === 'hin') {
     s.sicht.push([k.x, k.y, KUNDSCHAFT_SICHT]);
     if (s.sicht.length > 400) s.sicht.splice(1, 1);
@@ -457,11 +476,11 @@ const AKTIONEN = {
   handwerkerSchicken(s, a) {
     const e = effekte(s);
     const x = a.x | 0, y = a.y | 0;
-    const res = feldRohstoff(x, y);
+    const res = rohstoffAuf(s, x, y);
     if (!res || !e.sicht.has(res)) return nein('Hier gibt es keinen bekannten Rohstoff.');
     if (!sichtbar(s.sicht, x, y)) return nein('Dieses Feld ist noch nicht erkundet.');
     if (s.handwerker.filter((h) => !h.stopp).length >= handwerkerAnzahl(s, e)) return nein('Alle Handwerker sind unterwegs. Baue weitere Handwerkerhütten.');
-    const h = { id: s.nid++, x, y, res, phase: 'hin', start: s.zeit };
+    const h = { id: s.nid++, x, y, res, phase: 'hin', start: s.zeit, ab: s.zeit };
     h.naechste = s.zeit + wegDauer(s, h, HANDWERKER_FELDER_PRO_MIN * handwerkerTempo(handwerkerStufe(s)), e);
     s.handwerker.push(h);
   },
@@ -472,7 +491,7 @@ const AKTIONEN = {
   kundschafterSchicken(s, a) {
     const e = effekte(s);
     if (s.kundschafter.length >= e.kundschafter) return nein('Alle Kundschafter sind unterwegs.');
-    const k = { id: s.nid++, x: a.x | 0, y: a.y | 0, phase: 'hin', start: s.zeit };
+    const k = { id: s.nid++, x: a.x | 0, y: a.y | 0, phase: 'hin', start: s.zeit, ab: s.zeit };
     if (abstand(s.heim, k) > 80) return nein('So weit kann ein Kundschafter nicht laufen.');
     k.naechste = s.zeit + wegDauer(s, k, KUNDSCHAFTER_FELDER_PRO_MIN, e);
     s.kundschafter.push(k);

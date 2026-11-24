@@ -226,3 +226,6 @@ h2, h3, .titel, .logo, .knopf, .tab, .zeitalter, .tn, .za-kopf { font-family: 'L
   #auswahl, #baumodus { bottom: calc(70px + var(--sicher-u)); }
   .blatt { max-height: 96vh; }
 }
+.hw-z { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; justify-content: center; padding: 4px 0; font-size: 13.5px; border-bottom: 1.5px dashed rgba(0,0,0,.15); }
+.vb-panel h3 { display: flex; align-items: center; justify-content: center; gap: 6px; }
+.vb-panel .knopf { margin: 3px; }
