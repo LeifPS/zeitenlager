@@ -257,10 +257,10 @@ export function rohstoffLager(stufe) { return Math.round(60 * Math.pow(1.45, stu
 export function zentrumRohstoffLager(stufe) { return Math.round(30 * Math.pow(1.45, stufe - 1)); }
 export function platzVon(stufe) { return 6 + (stufe - 1) * 2; }
 export function forschungsTempo(akademieStufe) { return akademieStufe ? 90 * Math.pow(1.34, akademieStufe - 1) : 60; } // Wissen pro Stunde
-export function gebaeudeHp(typ, stufe) { return Math.round(GEBAEUDE[typ].hp * Math.pow(1.55, stufe - 1)); }
+export function gebaeudeHp(typ, stufe) { return Math.round(GEBAEUDE[typ].hp * Math.pow(1.4, stufe - 1)); }
 export function abwehrWerte(typ, stufe) {
   const a = GEBAEUDE[typ].abwehr;
-  return a ? { ...a, schaden: a.schaden * Math.pow(1.55, stufe - 1) } : null;
+  return a ? { ...a, schaden: a.schaden * Math.pow(1.4, stufe - 1) } : null;
 }
 export function handwerkerTraglast(stufe) { return 1 + (stufe - 1) * 0.25; }
 export function handwerkerTempo(stufe) { return 1 + (stufe - 1) * 0.08; }
@@ -393,3 +393,9 @@ export const START_GEBAEUDE = ['zentrum', 'goldmine', 'schatzkammer', 'handwerke
 
 export const LAGER_GROESSE = 40; // Felder pro Kante
 export const SOFORT_FAKTOR = 4;  // Sofort kaufen kostet so viel mal den Goldpreis (plus Rohstoffe)
+
+export function abwehrMacht(typ, stufe) {
+  const a = abwehrWerte(typ, stufe); if (!a) return 0;
+  const dps = a.schaden / (a.rate || 1) * (a.flaeche ? 1.8 : 1) * (a.kette || 1) * (a.rate ? 1 : 0.15);
+  return Math.sqrt(gebaeudeHp(typ, stufe) * dps * 4) * (a.rw / 5);
+}
