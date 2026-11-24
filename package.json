@@ -1,0 +1,15 @@
+{
+  "name": "zeitenlager",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Zeitenlager: Kriegslager mit Merge-Einheiten, 11 Zeitaltern, Forschung, Karte und Raids",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "test": "node --test tests/"
+  },
+  "devDependencies": {
+    "wrangler": "^4.40.0"
+  }
+}

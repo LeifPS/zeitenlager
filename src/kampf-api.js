@@ -1,0 +1,22 @@
+// Server-Teil für Karte, Kämpfe, Raids und Rangliste.
+import { tick, armeeMacht } from '../public/shared/regeln.js';
+import { einheitMacht } from '../public/shared/daten.js';
+
+export const kampfApi = {
+  macht(s) { return armeeMacht(s, einheitMacht); },
+
+  async route(welt, pfad, k, body, jetzt) {
+    if (pfad === '/nachbarn') {
+      // Lager anderer Spieler in der Nähe (für die Karte)
+      const s = welt.ladeStand(k);
+      const r = welt.sql.exec('SELECT staende.k AS k, konten.name AS name, hx, hy, zeitalter, ruhm FROM staende JOIN konten ON konten.k = staende.k WHERE ABS(hx - ?) < 60 AND ABS(hy - ?) < 60 LIMIT 200', s.heim.x, s.heim.y).toArray();
+      return { ok: true, lager: r.filter((x) => x.k !== k).map((x) => ({ name: x.name, x: x.hx, y: x.hy, zeitalter: x.zeitalter, ruhm: x.ruhm })) };
+    }
+    if (pfad === '/rangliste') {
+      const r = welt.sql.exec('SELECT konten.name AS name, ruhm, zeitalter, macht FROM staende JOIN konten ON konten.k = staende.k ORDER BY ruhm DESC, zeitalter DESC LIMIT 100').toArray();
+      return { ok: true, liste: r.map((x) => ({ name: x.name, ruhm: x.ruhm, zeitalter: x.zeitalter, macht: Math.round(x.macht) })) };
+    }
+    void tick; void body; void jetzt;
+    return null;
+  },
+};

@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="de">
+<head>
+<script src="lgh-vorlade.js"></script><!--lgh-->
+
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>Zeitenlager</title>
+<meta name="description" content="Zeitenlager: Baue dein Kriegslager, merge deine Einheiten und führe sie von der Antike bis zu den Sternen.">
+<meta name="theme-color" content="#2d5a27">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="preload" href="fonts/lilita.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div id="anmeldung" hidden></div>
+<div id="spiel" hidden>
+  <canvas id="welt" aria-label="Dein Lager"></canvas>
+  <div id="oben"></div>
+  <div id="ecke"></div>
+  <div id="toasts"></div>
+  <div id="auswahl" hidden></div>
+  <div id="baumodus" hidden></div>
+  <nav id="unten"></nav>
+</div>
+<div id="fenster" hidden></div>
+<div id="vollbild" hidden></div>
+<noscript><p style="padding:40px">Zeitenlager braucht JavaScript.</p></noscript>
+<script type="module" src="js/main.js"></script>
+<!--lgh-start--><script>window.LGH_SPIEL='zeitenlager';window.LGH_POS='bc';window.LGH_OHNE_MENUE=true;</script><script src="lgh-modul.js"></script><!--lgh-ende-->
+</body>
+</html>
