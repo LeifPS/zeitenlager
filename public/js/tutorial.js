@@ -4,7 +4,7 @@ import { icon } from './icons.js';
 const SCHRITTE = [
   { text: 'Willkommen in deinem <b>Zeitenlager</b>! Hier beginnt deine Reise von der Antike bis zu den Sternen. Ich zeige dir kurz das Wichtigste.', knopf: 'Los geht\'s' },
   { text: 'Deine <b>Goldmine</b> fördert Gold. Tippe sie an, um das Gold einzusammeln.', warte: 'gold' },
-  { text: 'Zwei gleiche Einheiten werden zu einer stärkeren. <b>Ziehe einen Krieger auf einen anderen Krieger</b> – so entsteht ein Bronze-Krieger.', warte: 'merge' },
+  { text: 'Zwei gleiche Einheiten werden zu einer stärkeren. <b>Ziehe einen Krieger auf einen anderen Krieger</b> – so entsteht ein Krieger der Stufe Rot (rote Schärpe).', warte: 'merge' },
   { text: 'Öffne die <b>Forschung</b> und erforsche etwas, zum Beispiel <b>Schrift</b> oder <b>Bergbau</b>. Fast alles im Spiel wird erforscht.', warte: 'forschung', zeige: '[data-u=forschung]' },
   { text: 'Mehr Gold, mehr Armee: Öffne <b>Bauen</b> und baue eine zweite <b>Goldmine</b>.', warte: 'bauen:goldmine', zeige: '[data-u=bauen]' },
   { text: 'Zeit für den ersten Kampf! Öffne <b>Angriff</b> und greif das erste Barbarendorf der Kampagne an. Der Kampf läuft von selbst.', warte: 'kampf', zeige: '[data-u=angriff]' },
