@@ -1,15 +1,16 @@
 // Oberfläche: obere Leiste, untere Knöpfe, Auswahl-Leiste, Fenster (Bauen, Ausbilden, Armee, Forschung, Einstellungen).
 import {
-  GEBAEUDE, GEBAEUDE_IDS, EINHEITEN, FORSCHUNG, FORSCHUNG_IDS, ROHSTOFFE, ROHSTOFF_IDS, STUFEN, ZEITALTER, ROEMISCH, LINIEN, LINIE_GEBAEUDE, EINHEIT_FOLGE,
+  GEBAEUDE, GEBAEUDE_IDS, EINHEITEN, FORSCHUNG, FORSCHUNG_IDS, ROHSTOFFE, ROHSTOFF_IDS, STUFEN, STUFE_CSS, ZEITALTER, ROEMISCH, LINIEN, LINIE_GEBAEUDE, EINHEIT_FOLGE,
   bauKosten, bauZeit, goldProStunde, goldLager, rohstoffLager, platzVon, forschungsTempo, einheitWerte, abwehrWerte, gebaeudeHp, PRODUKTION_MAX_STUNDEN,
   heilSlots, ausbildungsZeitalter, handwerkerTraglast,
 } from '../shared/daten.js';
 import * as R from '../shared/regeln.js';
 import { icon, sterneHtml } from './icons.js';
-import { zahl, dauer, esc } from './format.js';
+import { zahl, dauer, esc, bisSpan, sofortSpan, balkenI, ohneZeiten, zeitenAktualisieren } from './format.js';
 import { einheitPortrait, gebaeudePortrait } from './grafik.js';
 
 const $ = (sel, el = document) => el.querySelector(sel);
+export function stufenChip(stufe) { return `<span class="stufen-chip ${stufe === 0 ? 'normal' : ''} ${stufe === 3 ? 'dunkel' : ''}" style="--st:${STUFE_CSS[stufe] || '#e9dfc8'}">${STUFEN[stufe].name}</span>`; }
 export function kostenHtml(s, k, mitFehlend = true) {
   const teile = [];
   for (const r in k) {
@@ -41,17 +42,20 @@ export class UI {
   // ---------------------------------------------------- Leisten
   obenAktualisieren() {
     const s = this.spiel.s; if (!s) return;
+    const alt = this.oben.innerHTML;
     const gm = R.goldMax(s), za = R.zeitalter(s);
     const pm = R.platzMax(s), pb = R.platzBelegt(s);
     const e = R.effekte(s);
     const res = ROHSTOFF_IDS.filter((r) => e.sicht.has(r) || s.res[r] > 0);
     const rm = R.rohstoffMax(s);
-    this.oben.innerHTML = `
+    const neuOben = `
       <div class="balkenbox gold" title="Gold"><span class="ic-gross">${icon('gold')}</span><div class="bb"><b>${zahl(s.gold)}</b><i style="width:${Math.min(100, s.gold / gm * 100)}%"></i></div><small>max ${zahl(gm)}</small></div>
       <div class="balkenbox platz" title="Platz für Einheiten"><span class="ic-gross">${icon('platz')}</span><div class="bb"><b>${pb}/${pm}</b><i style="width:${Math.min(100, pb / pm * 100)}%"></i></div></div>
       ${res.length ? `<button class="resleiste" data-u="rohstoffe" title="Rohstoffe (max ${zahl(rm)} je Sorte)">${res.slice(0, 6).map((r) => `<span>${icon(r)}${zahl(s.res[r])}</span>`).join('')}${res.length > 6 ? `<span>+${res.length - 6}</span>` : ''}</button>` : ''}
       <div class="zeitalter" style="--za:${ZEITALTER[za].farbe}" title="Dein Zeitalter">${ZEITALTER[za].name}</div>
-      <div class="ruhm" title="Ruhm">${icon('ruhm')}<b>${zahl(s.ruhm)}</b></div>`;
+      <div class="ruhm" title="Ruhm">Ruhm <b>${zahl(s.ruhm)}</b></div>`;
+    if (neuOben !== this.obenHtml) { this.obenHtml = neuOben; this.oben.innerHTML = neuOben; }
+    void alt;
     const rl = $('.resleiste', this.oben); if (rl) rl.onclick = () => this.oeffne('rohstoffe');
     const ungelesen = (s.meldungen || []).length;
     const p = $('#ecke .punkt'); if (p) p.hidden = !ungelesen;
@@ -68,7 +72,7 @@ export class UI {
 
   // Auswahl-Leiste für ein Gebäude
   zeigeAuswahl(b) {
-    this.ausgewaehlt = b ? b.id : null;
+    this.ausgewaehlt = b ? b.id : null; this.auswahlHtml = null;
     this.auswahlAktualisieren();
   }
   auswahlAktualisieren() {
@@ -78,7 +82,7 @@ export class UI {
     const g = GEBAEUDE[b.typ];
     const knoepfe = [];
     knoepfe.push(['info', 'buch', 'Info']);
-    if (b.bauBis) knoepfe.push(['sofortBau', 'blitz', `${zahl(R.sofortGold(b.bauBis - this.spiel.jetzt(), s))}`]);
+    if (b.bauBis) knoepfe.push(['sofortBau', 'blitz', sofortSpan(b.bauBis, R.sofortGold(b.bauBis - this.spiel.jetzt(), s))]);
     else if (g.kat !== 'deko' && b.stufe < g.max(11)) knoepfe.push(['ausbauen', 'pfeilhoch', 'Ausbauen']);
     if (b.typ === 'goldmine' && b.stufe >= 1) knoepfe.push(['einsammeln', 'gold', 'Sammeln']);
     if (['kaserne', 'schiessstand', 'stall', 'werkstatt', 'flugfeld'].includes(b.typ) && b.stufe >= 1) knoepfe.push(['ausbilden', 'armee', 'Ausbilden']);
@@ -87,10 +91,13 @@ export class UI {
     if (b.typ === 'handwerkerhuette') knoepfe.push(['karte', 'karte', 'Karte']);
     knoepfe.push(['verschieben', 'verschieben', 'Verschieben']);
     if (['baum', 'fahne', 'statue', 'mauer', 'falle'].includes(b.typ)) knoepfe.push(['abreissen', 'x', 'Entfernen']);
-    const rest = b.bauBis ? `<small class="bauzeit">${icon('uhr')}${dauer(b.bauBis - this.spiel.jetzt())}</small>` : '';
-    this.auswahl.innerHTML = `<div class="titel">${esc(g.name)} <span class="stufe">${b.stufe === 0 ? 'im Bau' : 'Stufe ' + b.stufe}</span>${rest}</div>
+    const rest = b.bauBis ? `<small class="bauzeit">${icon('uhr')}${bisSpan(b.bauBis, this.spiel.jetzt())}</small>` : '';
+    const neu = `<div class="titel">${esc(g.name)} <span class="stufe">${b.stufe === 0 ? 'im Bau' : 'Stufe ' + b.stufe}</span>${rest}</div>
       <div class="reihe">${knoepfe.map(([a, ic, t]) => `<button class="knopf rund mini ${a === 'sofortBau' ? 'gruen' : ''}" data-a="${a}">${icon(ic)}<span>${t}</span></button>`).join('')}</div>`;
     this.auswahl.hidden = false;
+    if (ohneZeiten(neu) === this.auswahlHtml) { zeitenAktualisieren(this.auswahl, this.spiel.jetzt(), (ms) => R.sofortGold(ms, s)); return; }
+    this.auswahlHtml = ohneZeiten(neu);
+    this.auswahl.innerHTML = neu;
     this.auswahl.onclick = (e) => {
       const k = e.target.closest('[data-a]'); if (!k) return;
       this.spiel.ton('klick');
@@ -124,8 +131,9 @@ export class UI {
     const scrollX = $('.baum-scroll', this.fenster)?.scrollLeft;
     const r = f.call(this, this.offen.arg);
     if (!r) return;
-    if (this.nurWennGeaendert && r.html === this.letztesHtml && r.titel === this.letzterTitel && this.fenster.firstChild) return;
-    this.letztesHtml = r.html; this.letzterTitel = r.titel;
+    const vergleich = ohneZeiten(r.html);
+    if (this.nurWennGeaendert && vergleich === this.letztesHtml && r.titel === this.letzterTitel && this.fenster.firstChild) { zeitenAktualisieren(this.fenster, this.spiel.jetzt(), (ms) => R.sofortGold(ms, this.spiel.s)); return; }
+    this.letztesHtml = vergleich; this.letzterTitel = r.titel;
     this.fenster.innerHTML = `<div class="blatt ${r.klasse || ''}"><div class="kopf"><h2>${r.titel}</h2><button class="knopf zu" data-zu>${icon('x')}</button></div><div class="inhalt">${r.html}</div></div>`;
     $('[data-zu]', this.fenster).onclick = () => { this.spiel.ton('klick'); this.schliessen(); };
     const inh = $('.inhalt', this.fenster); inh.scrollTop = scroll;
@@ -179,7 +187,7 @@ export class UI {
     const ziel = b.stufe + 1;
     const werte = this.gebaeudeWerte(b.typ, b.stufe, ziel, s);
     let ausbau = '';
-    if (b.bauBis) ausbau = `<p class="hinweis">Wird gebaut: noch ${dauer(b.bauBis - this.spiel.jetzt())}</p><button class="knopf gross gruen" data-sofort>${icon('blitz')} Sofort fertig: ${icon('gold')}${zahl(R.sofortGold(b.bauBis - this.spiel.jetzt(), s))}</button>`;
+    if (b.bauBis) ausbau = `<p class="hinweis">Wird gebaut: noch ${bisSpan(b.bauBis, this.spiel.jetzt())}</p><button class="knopf gross gruen" data-sofort>${icon('blitz')} Sofort fertig: ${icon('gold')}${sofortSpan(b.bauBis, R.sofortGold(b.bauBis - this.spiel.jetzt(), s))}</button>`;
     else if (g.kat === 'deko') ausbau = '';
     else if (ziel > g.max(11)) ausbau = '<p class="hinweis">Höchste Stufe erreicht.</p>';
     else {
@@ -237,20 +245,19 @@ export class UI {
       return `<div class="karte-e ${frei ? '' : 'gesperrt'}">
         <img src="${einheitPortrait(d.id, 0)}" alt=""><b>${d.name}</b>
         <small>${LINIEN[d.linie].name} · ${ZEITALTER[d.zeitalter].name}</small>
-        <div class="mini-werte"><span title="Lebenspunkte">LP ${zahl(d.hp)}</span><span title="Schaden">SCH ${zahl(d.schaden)}</span><span title="Platz">${icon('platz')}${d.platz}</span></div>
+        <div class="mini-werte"><span title="Lebenspunkte">LP ${zahl(d.hp)}</span><span title="Schaden">SCH ${zahl(d.schaden)}</span><span title="Platz">Platz ${d.platz}</span></div>
         ${sperre ? `<span class="sperre">${esc(sperre)}</span>` : `<div class="k">${kostenHtml(s, d.kosten)}</div>
         <div class="reihe2"><button class="knopf gruen" data-aus="${d.id}">${icon('uhr')}${dauer(d.zeit * 1000)}</button><button class="knopf gold" data-sofortkauf="${d.id}" title="Sofort kaufen">${icon('blitz')}${zahl(R.sofortKosten(d).gold)}</button></div>`}
       </div>`;
     }).join('');
     const q = s.ausbildung[gid] || [];
     const schlange = q.map((a, i) => {
-      const rest = a.bis ? a.bis - this.spiel.jetzt() : EINHEITEN[a.typ].zeit * 1000;
-      return `<div class="q-e ${i === 0 ? 'aktiv' : ''}"><img src="${einheitPortrait(a.typ, 0)}" alt=""><small>${i === 0 ? dauer(rest) : ''}</small><button class="x" data-ab="${i}" title="Abbrechen">${icon('x')}</button></div>`;
+      return `<div class="q-e ${i === 0 ? 'aktiv' : ''}"><img src="${einheitPortrait(a.typ, 0)}" alt=""><small>${i === 0 && a.bis ? bisSpan(a.bis, this.spiel.jetzt()) : ''}</small><button class="x" data-ab="${i}" title="Abbrechen">${icon('x')}</button></div>`;
     }).join('');
     return {
       titel: `${GEBAEUDE[b.typ].name} <span class="stufe">Stufe ${b.stufe}</span>`, klasse: 'breit',
-      html: `<div class="leiste-info"><span>${icon('platz')} Platz ${pb}/${pm}</span><span>Warteschlange ${q.length}/${R.AUSBILDUNG_MAX}</span>
-        ${q.length && q[0].bis ? `<button class="knopf gold klein2" data-sofortaus>${icon('blitz')} Aktuelle sofort: ${zahl(R.sofortGold(q[0].bis - this.spiel.jetzt(), s))}</button>` : ''}</div>
+      html: `<div class="leiste-info"><span>Platz ${pb}/${pm}</span><span>Warteschlange ${q.length}/${R.AUSBILDUNG_MAX}</span>
+        ${q.length && q[0].bis ? `<button class="knopf gold klein2" data-sofortaus>${icon('blitz')} Aktuelle sofort: ${sofortSpan(q[0].bis, R.sofortGold(q[0].bis - this.spiel.jetzt(), s))}</button>` : ''}</div>
         ${q.length ? `<div class="schlange">${schlange}</div>` : ''}<div class="raster">${karten}</div>`,
       nach: (el) => {
         el.querySelectorAll('[data-aus]').forEach((k) => k.onclick = () => this.spiel.aktion({ art: 'ausbilden', typ: k.dataset.aus }, () => this.spiel.ton('ausbilden')));
@@ -281,19 +288,19 @@ export class UI {
       const folge = EINHEIT_FOLGE[g.typ];
       return `<div class="armee-z">
         <img src="${einheitPortrait(g.typ, g.stufe)}" alt="">
-        <div class="az-text"><b>${d.name}</b> <span class="stufen-name" style="--st:${st.farbe}">${st.sterne ? sterneHtml(Math.min(5, st.sterne), st.farbe) + ' ' : ''}${st.name}${g.stufe ? ' ' + ROEMISCH[g.stufe] : ''}</span>
+        <div class="az-text"><b>${d.name}</b> ${stufenChip(g.stufe)}
           <small>LP ${zahl(w.hp)} · Schaden ${zahl(w.schaden)} · ${LINIEN[d.linie].name}</small>
-          ${verw.length ? `<small class="verw">${icon('heilen')} ${verw.length} verwundet${verw.map((u) => { const h = s.heilung.find((x) => x.eid === u.id); return h ? ' · ' + dauer(h.bis - jetzt) : ''; }).join('')}</small>` : ''}
+          ${verw.length ? `<small class="verw">${verw.length} verwundet${verw.map((u) => { const h = s.heilung.find((x) => x.eid === u.id); return h ? ' · ' + bisSpan(h.bis, jetzt) : ''; }).join('')}</small>` : ''}
         </div>
         <div class="az-anz"><small>Anzahl</small>${g.liste.length}</div>
         <div class="az-knoepfe">
           ${gesund.length >= 2 && g.stufe < 7 ? `<button class="knopf gruen klein2" data-merge="${g.typ}|${g.stufe}">${icon('stern')} Mergen</button>` : ''}
-          ${verw.length ? `<button class="knopf gold klein2" data-heil="${verw[0].id}">${icon('blitz')} Heilen ${zahl(R.sofortGold(s.heilung.find((x) => x.eid === verw[0].id)?.bis - jetzt || R.heilDauerVon(s, verw[0]), s) + R.heilKosten(verw[0]))}</button>` : ''}
+          ${verw.length ? `<button class="knopf gold klein2" data-heil="${verw[0].id}">${icon('blitz')} Sofort heilen</button>` : ''}
           ${hatRk && folge && gesund.length ? `<button class="knopf klein2" data-auf="${gesund[0].id}" title="Aufrüsten zu ${EINHEITEN[folge].name}">${icon('pfeilhoch')} ${EINHEITEN[folge].name}</button>` : ''}
           ${gesund.length ? `<button class="knopf rot klein2" data-weg="${gesund[0].id}" title="Eine entlassen">${icon('x')}</button>` : ''}
         </div></div>`;
     }).join('');
-    const auf = s.aufruesten ? `<div class="hinweis">${icon('pfeilhoch')} Rüstkammer: ${EINHEITEN[s.aufruesten.ziel].name} in ${dauer(s.aufruesten.bis - jetzt)}</div>` : '';
+    const auf = s.aufruesten ? `<div class="hinweis">${icon('pfeilhoch')} Rüstkammer: ${EINHEITEN[s.aufruesten.ziel].name} in ${bisSpan(s.aufruesten.bis, jetzt)}</div>` : '';
     let aufInfo = '';
     if (this.aufFrage) {
       const u = s.einheiten.find((x) => x.id === this.aufFrage);
@@ -302,7 +309,7 @@ export class UI {
     return {
       titel: 'Deine Armee', klasse: 'breit',
       html: `<p class="hinweis">Ziehe im Lager eine Einheit auf eine gleiche Einheit gleicher Stufe, um sie zu mergen – oder nutze den Knopf.</p>
-        <div class="leiste-info"><span>${icon('platz')} Platz ${R.platzBelegt(s)}/${R.platzMax(s)}</span><span>${icon('armee')} Stärke ${zahl(this.spiel.macht())}</span></div>${auf}${aufInfo}
+        <div class="leiste-info"><span>Platz ${R.platzBelegt(s)}/${R.platzMax(s)}</span><span>Stärke ${zahl(this.spiel.macht())}</span></div>${auf}${aufInfo}
         <div class="armee-liste">${zeilen || '<p>Noch keine Einheiten.</p>'}</div>`,
       nach: (el) => {
         el.querySelectorAll('[data-merge]').forEach((k) => k.onclick = () => {
@@ -327,7 +334,7 @@ export class UI {
     const tiefe = {};
     const t = (id) => { if (tiefe[id] != null) return tiefe[id]; const x = FORSCHUNG[id]; let d = 0; for (const v of x.vor) if (FORSCHUNG[v].zeitalter === x.zeitalter) d = Math.max(d, t(v) + 1); return (tiefe[id] = d); };
     FORSCHUNG_IDS.forEach(t);
-    const SPW = 210, ZH = 74, KW = 180;
+    const SPW = 262, ZH = 92, KW = 216;
     let xBasis = 20; const pos = {}; const spalten = [];
     for (let za = 0; za < ZEITALTER.length; za++) {
       const ids = FORSCHUNG_IDS.filter((id) => FORSCHUNG[id].zeitalter === za);
@@ -336,10 +343,10 @@ export class UI {
       for (const id of ids) {
         const d = tiefe[id]; zeilen[d] = (zeilen[d] || 0) + 1;
         const r = zeilen[d] - 1;
-        pos[id] = { x: xBasis + d * SPW, y: 50 + r * ZH };
+        pos[id] = { x: xBasis + 18 + d * SPW, y: 70 + r * ZH };
       }
-      spalten.push({ za, x: xBasis, w: (maxT + 1) * SPW });
-      xBasis += (maxT + 1) * SPW + 30;
+      spalten.push({ za, x: xBasis, w: (maxT + 1) * SPW + 20 });
+      xBasis += (maxT + 1) * SPW + 40;
     }
     const hoehe = Math.max(...Object.values(pos).map((p) => p.y)) + ZH + 20;
     const bekannt = new Set([...f.fertig, ...f.schlange, f.aktiv]);
@@ -347,7 +354,8 @@ export class UI {
     for (const id of FORSCHUNG_IDS) for (const v of FORSCHUNG[id].vor) {
       const a = pos[v], b = pos[id];
       const fertig = f.fertig.includes(v);
-      linien += `<path d="M${a.x + KW} ${a.y + 26} C${a.x + KW + 30} ${a.y + 26} ${b.x - 30} ${b.y + 26} ${b.x} ${b.y + 26}" class="${fertig ? 'an' : ''}"/>`;
+      const d = `M${a.x + KW} ${a.y + 34} C${a.x + KW + 40} ${a.y + 34} ${b.x - 40} ${b.y + 34} ${b.x} ${b.y + 34}`;
+      linien += `<path d="${d}" class="rand"/><path d="${d}" class="${fertig ? 'an' : ''}"/>`;
     }
     const knoten = FORSCHUNG_IDS.map((id) => {
       const x = FORSCHUNG[id], p = pos[id];
@@ -356,19 +364,25 @@ export class UI {
       else if (f.aktiv === id) zust = 'aktiv';
       else if (f.schlange.includes(id)) zust = 'schlange';
       else if (x.vor.every((v) => bekannt.has(v)) && (id.startsWith('tor_') || x.zeitalter <= R.zeitalter(s))) zust = 'frei';
-      const prog = zust === 'aktiv' ? f.fortschritt / x.kosten : 0;
-      const sym = (x.eff.einheiten || []).slice(0, 2).map((u) => `<img src="${einheitPortrait(u, 0, 'blau', 40)}" alt="">`).join('') + (x.eff.gebaeude || []).slice(0, 2 - Math.min(2, (x.eff.einheiten || []).length)).map((g) => `<img src="${gebaeudePortrait(g, 1, Math.min(R.zeitalter(s), x.zeitalter))}" alt="">`).join('') + (x.eff.sicht || []).slice(0, 1).map((r) => `<span class="ressym">${icon(r)}</span>`).join('');
-      return `<button class="tech ${zust} ${id.startsWith('tor_') ? 'tor' : ''}" style="left:${p.x}px;top:${p.y}px" data-tech="${id}">
-        <span class="sym">${sym || icon('forschung')}</span><span class="tn">${esc(x.name)}</span>
-        <small>${zust === 'fertig' ? 'Erforscht' : zust === 'aktiv' ? dauer((x.kosten - f.fortschritt) / tempo * 3600000) : zust === 'schlange' ? 'Geplant ' + (f.schlange.indexOf(id) + 1) : dauer(x.kosten / tempo * 3600000)}</small>
-        ${zust === 'aktiv' ? `<i class="prog" style="width:${prog * 100}%"></i>` : ''}</button>`;
+      const ende = zust === 'aktiv' ? this.spiel.jetzt() + (x.kosten - f.fortschritt) / tempo * 3600000 : 0;
+      const ende5 = Math.round(ende / 5000) * 5000, von5 = ende5 - x.kosten / tempo * 3600000;
+      const frei = [...(x.eff.einheiten || []).map((u) => `<img src="${einheitPortrait(u, 0, 'blau', 40)}" alt="" title="${esc(EINHEITEN[u].name)}">`), ...(x.eff.gebaeude || []).map((g) => `<img src="${gebaeudePortrait(g, 1, Math.min(R.zeitalter(s), x.zeitalter))}" alt="" title="${esc(GEBAEUDE[g].name)}">`), ...(x.eff.sicht || []).map((r) => `<span class="ressym" title="${ROHSTOFFE[r].name}">${icon(r)}</span>`)];
+      if (x.eff.zeitalter) frei.unshift(`<img src="${gebaeudePortrait('zentrum', x.eff.zeitalter + 1, x.eff.zeitalter)}" alt="" title="Zentrum im neuen Zeitalter">`);
+      const bild = frei.length ? frei[0] : `<b class="tech-zahl">${x.eff.forschung ? '+' + Math.round(x.eff.forschung * 100) + '%' : x.eff.gold ? '+' + Math.round(x.eff.gold * 100) + '%' : x.eff.baumeister ? '+1' : '+'}</b>`;
+      const zeit = zust === 'fertig' ? 'Erforscht' : zust === 'aktiv' ? bisSpan(ende5, this.spiel.jetzt()) : zust === 'schlange' ? 'Geplant ' + (f.schlange.indexOf(id) + 1) : dauer(x.kosten / tempo * 3600000);
+      return `<button class="tech ${zust} ${id.startsWith('tor_') ? 'tor' : ''}" style="left:${p.x}px;top:${p.y}px;--za:${ZEITALTER[x.zeitalter].farbe}" data-tech="${id}">
+        <span class="medaille">${bild}</span>
+        <span class="tn">${esc(x.name)}</span>
+        <span class="mini-frei">${frei.slice(1, 5).join('')}</span>
+        <small class="tz">${zeit}</small>
+        ${zust === 'aktiv' ? balkenI(von5, ende5, this.spiel.jetzt()) : ''}</button>`;
     }).join('');
-    const kopf = spalten.map((sp) => `<div class="za-kopf" style="left:${sp.x}px;width:${sp.w - 30}px;--za:${ZEITALTER[sp.za].farbe}">${ZEITALTER[sp.za].name}</div>`).join('');
+    const kopf = spalten.map((sp) => `<div class="za-band ${sp.za > R.zeitalter(s) ? 'spaeter' : ''}" style="left:${sp.x}px;width:${sp.w}px;--za:${ZEITALTER[sp.za].farbe}"><div class="za-kopf">${ZEITALTER[sp.za].name}</div></div>`).join('');
     const det = this.techDetail ? this.techDetailHtml(this.techDetail) : '';
     return {
       titel: 'Forschung', klasse: 'voll',
-      html: `<div class="leiste-info"><span>${icon('forschung')} ${zahl(tempo)} Wissen/Stunde</span>
-        ${f.aktiv ? `<span>Aktuell: <b>${FORSCHUNG[f.aktiv].name}</b> · ${dauer((FORSCHUNG[f.aktiv].kosten - f.fortschritt) / tempo * 3600000)}</span>` : '<span class="warn">Keine Forschung aktiv</span>'}
+      html: `<div class="leiste-info"><span>${zahl(tempo)} Wissen pro Stunde</span>
+        ${f.aktiv ? `<span>Aktuell: <b>${FORSCHUNG[f.aktiv].name}</b> · ${bisSpan(Math.round((this.spiel.jetzt() + (FORSCHUNG[f.aktiv].kosten - f.fortschritt) / tempo * 3600000) / 5000) * 5000, this.spiel.jetzt())}</span>` : '<span class="warn">Keine Forschung aktiv</span>'}
         <span>Warteschlange ${f.schlange.length}/${R.FORSCHUNG_SCHLANGE}</span></div>
         <div class="baum-scroll"><div class="baum" style="width:${xBasis}px;height:${hoehe}px">${kopf}<svg class="baum-linien" width="${xBasis}" height="${hoehe}">${linien}</svg>${knoten}</div></div>${det}`,
       nach: (el) => {
@@ -383,7 +397,7 @@ export class UI {
         const d = $('.tech-detail', el);
         if (d) {
           d.querySelector('[data-schliessen]').onclick = () => { this.techDetail = null; this.rendereFenster(); };
-          const fo = d.querySelector('[data-forschen]'); if (fo) fo.onclick = () => this.spiel.aktion({ art: 'forschen', id: this.techDetail }, () => { this.spiel.ton('forschung'); this.techDetail = null; });
+          const fo = d.querySelector('[data-forschen]'); if (fo) fo.onclick = () => this.spiel.aktion({ art: 'forschen', id: this.techDetail }, () => { this.spiel.ton('forschung'); this.techDetail = null; this.spiel.tutorial?.ereignis('forschung'); });
           const en = d.querySelector('[data-entfernen]'); if (en) en.onclick = () => this.spiel.aktion({ art: 'forschungEntfernen', id: this.techDetail }, () => { this.techDetail = null; });
         }
       },
@@ -446,9 +460,9 @@ export class UI {
   // Einheit angetippt: kleine Info
   zeigeEinheit(u) {
     const d = EINHEITEN[u.typ], st = STUFEN[u.stufe], w = einheitWerte(u.typ, u.stufe);
-    this.auswahl.innerHTML = `<div class="titel"><img class="mini-p" src="${einheitPortrait(u.typ, u.stufe, 'blau', 40)}" alt="">${d.name} <span class="stufen-name" style="--st:${st.farbe}">${st.name}${u.stufe ? ' ' + ROEMISCH[u.stufe] : ''}</span></div>
+    this.auswahl.innerHTML = `<div class="titel"><img class="mini-p" src="${einheitPortrait(u.typ, u.stufe, 'blau', 40)}" alt="">${d.name} ${stufenChip(u.stufe)}</div>
       <div class="reihe klein">LP ${zahl(w.hp)} · Schaden ${zahl(w.schaden)} · ${LINIEN[d.linie].name}${u.verwundet ? ' · <b class="verw">verwundet</b>' : ''}</div>
       <div class="reihe klein hint">Ziehe sie auf eine gleiche Einheit, um zu mergen.</div>`;
-    this.auswahl.hidden = false; this.auswahl.onclick = null; this.ausgewaehlt = null;
+    this.auswahl.hidden = false; this.auswahl.onclick = null; this.ausgewaehlt = null; this.auswahlHtml = null;
   }
 }

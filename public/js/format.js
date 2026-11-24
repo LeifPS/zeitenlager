@@ -19,3 +19,18 @@ export function dauer(ms) {
   return `${s}s`;
 }
 export function esc(t) { return String(t).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]); }
+
+// Zeitangaben, die jede Sekunde weiterzählen, ohne dass ein Fenster neu gezeichnet wird
+export function bisSpan(bis, jetzt) { return `<span data-bis="${Math.round(bis)}">${dauer(bis - jetzt)}</span>`; }
+export function sofortSpan(bis, preis) { return `<span data-sofort="${Math.round(bis)}">${zahl(preis)}</span>`; }
+export function balkenI(von, bis, jetzt) { const p = Math.max(0, Math.min(1, (jetzt - von) / Math.max(1, bis - von))); return `<i class="prog" data-von="${Math.round(von)}" data-ende="${Math.round(bis)}" style="width:${(p * 100).toFixed(1)}%"></i>`; }
+/** HTML ohne die weiterzählenden Teile (zum Vergleichen, ob sich wirklich etwas geändert hat) */
+export function ohneZeiten(html) {
+  return html.replace(/(<span data-(?:bis|sofort)="\d+">)[^<]*(<\/span>)/g, '$1$2').replace(/(<i class="prog" data-von="\d+" data-ende="\d+") style="[^"]*"/g, '$1');
+}
+export function zeitenAktualisieren(el, jetzt, sofortPreis) {
+  if (!el) return;
+  el.querySelectorAll('[data-bis]').forEach((x) => { x.textContent = dauer(+x.dataset.bis - jetzt); });
+  if (sofortPreis) el.querySelectorAll('[data-sofort]').forEach((x) => { x.textContent = zahl(sofortPreis(+x.dataset.sofort - jetzt)); });
+  el.querySelectorAll('i.prog[data-von]').forEach((x) => { const v = +x.dataset.von, b = +x.dataset.ende; x.style.width = Math.max(0, Math.min(100, (jetzt - v) / Math.max(1, b - v) * 100)) + '%'; });
+}

@@ -9,7 +9,7 @@ const N = LAGER_GROESSE;
 export class Lager {
   constructor(canvas, spiel) {
     this.cv = canvas; this.c = canvas.getContext('2d'); this.spiel = spiel;
-    this.cam = { x: 0, y: N * TH / 2, zoom: 1 };
+    this.cam = { x: N * TW / 2, y: N * TH / 2, zoom: 1 };
     this.boden = bodenBild(N);
     this.vis = new Map(); // Einheiten-Darstellung
     this.effekte = [];
@@ -22,7 +22,7 @@ export class Lager {
     this.eingabe();
     this.zoomStart();
   }
-  zoomStart() { const k = Math.min(this.W / 1500, this.H / 900); this.cam.zoom = Math.max(0.55, Math.min(1.2, k * 1.4)); }
+  zoomStart() { const k = Math.min(this.W / 1500, this.H / 900); this.cam.zoom = Math.max(0.7, Math.min(1.4, k * 1.6)); }
   resize() {
     this.dpr = Math.min(2, devicePixelRatio || 1);
     this.W = innerWidth; this.H = innerHeight;
@@ -34,10 +34,10 @@ export class Lager {
   // --------------------------------------------------- Koordinaten
   zuBild(wx, wy) { return [(wx - this.cam.x) * this.cam.zoom + this.W / 2, (wy - this.cam.y) * this.cam.zoom + this.H / 2]; }
   zuWelt(bx, by) { return [(bx - this.W / 2) / this.cam.zoom + this.cam.x, (by - this.H / 2) / this.cam.zoom + this.cam.y]; }
-  feldBei(bx, by) { const [wx, wy] = this.zuWelt(bx, by); return [(wx / (TW / 2) + wy / (TH / 2)) / 2, (wy / (TH / 2) - wx / (TW / 2)) / 2]; }
+  feldBei(bx, by) { const [wx, wy] = this.zuWelt(bx, by); return [wx / TW, wy / TH]; }
   begrenzeKamera() {
-    const maxX = N * TW / 2, minY = -40, maxY = N * TH + 40;
-    this.cam.x = Math.max(-maxX, Math.min(maxX, this.cam.x));
+    const minY = -40, maxY = N * TH + 40;
+    this.cam.x = Math.max(0, Math.min(N * TW, this.cam.x));
     this.cam.y = Math.max(minY, Math.min(maxY, this.cam.y));
     this.cam.zoom = Math.max(0.35, Math.min(2.2, this.cam.zoom));
   }
@@ -94,7 +94,7 @@ export class Lager {
         const nx = v.x + dx * k, ny = v.y + dy * k;
         if (this.frei(g, nx, ny) || d.linie === 'luft') { v.x = nx; v.y = ny; } else { v.tx = v.x; v.ty = v.y; }
         v.phase = (v.phase + dt * (1.2 + d.tempo * 0.6)) % 1; v.laeuft = true;
-        const sx = dx - dy; if (Math.abs(sx) > 0.01) v.dir = sx > 0 ? 1 : -1;
+        if (Math.abs(dx) > 0.01) v.dir = dx > 0 ? 1 : -1;
       }
     }
     for (const id of [...this.vis.keys()]) if (!ids.has(id)) this.vis.delete(id);
@@ -121,11 +121,11 @@ export class Lager {
       const gr = GEBAEUDE[b.typ].gr;
       const verschoben = this.modus && this.modus.art === 'verschieben' && this.modus.id === b.id;
       if (verschoben) continue;
-      liste.push({ tiefe: b.x + b.y + gr * 2 - 0.5, f: () => this.gebaeudeZeichnen(c, b, za, mauern, t) });
+      liste.push({ tiefe: b.y + gr - 0.05, f: () => this.gebaeudeZeichnen(c, b, za, mauern, t) });
     }
     for (const u of s.einheiten) {
       const v = this.vis.get(u.id); if (!v) continue;
-      liste.push({ tiefe: v.x + v.y + 0.3 + (EINHEITEN[u.typ].linie === 'luft' ? 100 : 0), f: () => this.einheitZeichnen(c, u, v, t) });
+      liste.push({ tiefe: v.y + (EINHEITEN[u.typ].linie === 'luft' ? 100 : 0), f: () => this.einheitZeichnen(c, u, v, t) });
     }
     if (this.modus) {
       const m = this.modus; const typ = m.art === 'bauen' ? m.typ : s.gebaeude.find((b) => b.id === m.id).typ;
@@ -139,14 +139,14 @@ export class Lager {
     c.setTransform(1, 0, 0, 1, 0, 0);
   }
   rasterZeichnen(c) {
-    c.save(); c.strokeStyle = 'rgba(255,255,255,0.18)'; c.lineWidth = 1;
-    for (let i = 1; i < N; i++) { c.beginPath(); c.moveTo(...iso(i, 1)); c.lineTo(...iso(i, N - 1)); c.stroke(); c.beginPath(); c.moveTo(...iso(1, i)); c.lineTo(...iso(N - 1, i)); c.stroke(); }
+    c.save(); c.strokeStyle = 'rgba(255,255,255,0.22)'; c.lineWidth = 1;
+    for (let i = 1; i < N; i++) { c.beginPath(); c.moveTo(i * TW, TH); c.lineTo(i * TW, (N - 1) * TH); c.stroke(); c.beginPath(); c.moveTo(TW, i * TH); c.lineTo((N - 1) * TW, i * TH); c.stroke(); }
     c.restore();
   }
   mauerMasken() {
     const m = new Map(), pos = new Set();
     for (const b of this.s.gebaeude) if (b.typ === 'mauer') pos.add(b.x + ',' + b.y);
-    for (const b of this.s.gebaeude) if (b.typ === 'mauer') m.set(b.id, (pos.has((b.x + 1) + ',' + b.y) ? 1 : 0) | (pos.has(b.x + ',' + (b.y + 1)) ? 2 : 0));
+    for (const b of this.s.gebaeude) if (b.typ === 'mauer') m.set(b.id, (pos.has((b.x + 1) + ',' + b.y) ? 1 : 0) | (pos.has(b.x + ',' + (b.y + 1)) ? 2 : 0) | (pos.has((b.x - 1) + ',' + b.y) ? 4 : 0) | (pos.has(b.x + ',' + (b.y - 1)) ? 8 : 0));
     return m;
   }
   gebaeudeZeichnen(c, b, za, mauern, t) {
@@ -163,7 +163,7 @@ export class Lager {
     const [mx, my] = iso(b.x + gr / 2, b.y + gr / 2);
     if (this.auswahl === b.id) {
       c.save(); c.strokeStyle = '#fff'; c.lineWidth = 2.5 / this.cam.zoom; c.setLineDash([8, 6]); c.lineDashOffset = -t * 30;
-      c.beginPath(); c.moveTo(...iso(b.x, b.y)); c.lineTo(...iso(b.x + gr, b.y)); c.lineTo(...iso(b.x + gr, b.y + gr)); c.lineTo(...iso(b.x, b.y + gr)); c.closePath(); c.stroke(); c.restore();
+      c.beginPath(); c.roundRect(b.x * TW, b.y * TH, gr * TW, gr * TH, 6); c.stroke(); c.restore();
     }
     if (b.bauBis) {
       this.geruest(c, b, gr);
@@ -186,11 +186,10 @@ export class Lager {
     if (b.typ === 'heilhaus' && this.s.heilung.length) { glow(c, mx, my - 60, 2 + Math.sin(t * 3), '#5be38c'); }
   }
   geruest(c, b, gr) {
-    c.save(); c.strokeStyle = '#8a5a2b'; c.lineWidth = 2;
-    const h = 46;
-    for (const [px, py] of [[b.x + 0.15, b.y + gr - 0.15], [b.x + gr - 0.15, b.y + gr - 0.15], [b.x + gr - 0.15, b.y + 0.15]]) { const [x, y] = iso(px, py); c.beginPath(); c.moveTo(x, y); c.lineTo(x, y - h); c.stroke(); }
-    const [a, bb] = iso(b.x + 0.15, b.y + gr - 0.15), [d, e] = iso(b.x + gr - 0.15, b.y + gr - 0.15), [f, g] = iso(b.x + gr - 0.15, b.y + 0.15);
-    for (const hh of [h * 0.4, h * 0.85]) { c.beginPath(); c.moveTo(a, bb - hh); c.lineTo(d, e - hh); c.lineTo(f, g - hh); c.stroke(); }
+    c.save(); c.strokeStyle = '#8a5a2b'; c.lineWidth = 3;
+    const x0 = b.x * TW + 4, x1 = (b.x + gr) * TW - 4, y = (b.y + gr) * TH - 2, h = 40 + gr * 10;
+    for (const x of [x0, (x0 + x1) / 2, x1]) { c.beginPath(); c.moveTo(x, y); c.lineTo(x, y - h); c.stroke(); }
+    for (const hh of [h * 0.4, h * 0.85]) { c.beginPath(); c.moveTo(x0, y - hh); c.lineTo(x1, y - hh); c.stroke(); }
     c.restore();
   }
   balken(c, x, y, p, col) {
@@ -222,7 +221,7 @@ export class Lager {
       }
     }
     if (u.gesperrt) c.globalAlpha = 0.6;
-    zeichneEinheit(c, px, py - (ziehe ? 8 : 0), u.typ, u.stufe, 'blau', v.laeuft || ziehe ? v.phase : 0.25, v.dir, { verwundet: u.verwundet, skala: 1.3 });
+    zeichneEinheit(c, px, py - (ziehe ? 8 : 0), u.typ, u.stufe, 'blau', v.laeuft || ziehe ? v.phase : 0.25, v.dir, { verwundet: u.verwundet, skala: 1.15 });
     c.globalAlpha = 1;
     if (this.einheitAuswahl === u.id) { c.save(); c.strokeStyle = '#fff'; c.lineWidth = 2; c.beginPath(); c.ellipse(x, y, 13, 6.5, 0, 0, 7); c.stroke(); c.restore(); }
   }
@@ -231,7 +230,7 @@ export class Lager {
     const ok = passt(this.s, typ, m.x, m.y, m.id);
     c.save();
     c.fillStyle = ok ? 'rgba(80,230,120,0.45)' : 'rgba(240,70,60,0.45)';
-    c.beginPath(); c.moveTo(...iso(m.x, m.y)); c.lineTo(...iso(m.x + gr, m.y)); c.lineTo(...iso(m.x + gr, m.y + gr)); c.lineTo(...iso(m.x, m.y + gr)); c.closePath(); c.fill();
+    c.beginPath(); c.roundRect(m.x * TW, m.y * TH, gr * TW, gr * TH, 6); c.fill();
     c.globalAlpha = 0.85;
     const b = this.s.gebaeude.find((x) => x.id === m.id);
     const st = b ? Math.max(1, b.stufe) : 1;
@@ -267,14 +266,14 @@ export class Lager {
   gebaeudeBei(bx, by) {
     const [wx, wy] = this.zuWelt(bx, by);
     const [fx, fy] = this.feldBei(bx, by);
-    const liste = [...this.s.gebaeude].sort((a, b) => (b.x + b.y) - (a.x + a.y));
+    const liste = [...this.s.gebaeude].sort((a, b) => (b.y + GEBAEUDE[b.typ].gr) - (a.y + GEBAEUDE[a.typ].gr));
     // erst Grundriss
     for (const b of liste) { const gr = GEBAEUDE[b.typ].gr; if (fx >= b.x && fy >= b.y && fx < b.x + gr && fy < b.y + gr) return b; }
-    // dann hohe Teile
+    // dann hohe Teile (alles, was über der Grundfläche nach oben ragt)
     for (const b of liste) {
-      const gr = GEBAEUDE[b.typ].gr; if (gr < 2) continue;
-      const [x, y] = iso(b.x + gr / 2, b.y + gr / 2);
-      if (Math.abs(wx - x) < gr * TW * 0.3 && wy < y && wy > y - 50 - gr * 12) return b;
+      const gr = GEBAEUDE[b.typ].gr; if (GEBAEUDE[b.typ].kat === 'deko' && b.typ !== 'statue') continue;
+      const x0 = b.x * TW, x1 = (b.x + gr) * TW, y1 = (b.y + gr) * TH, y0 = y1 - gr * TH - 40 - gr * 14;
+      if (wx >= x0 && wx <= x1 && wy >= y0 && wy <= y1) return b;
     }
     return null;
   }

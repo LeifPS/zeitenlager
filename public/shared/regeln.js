@@ -496,7 +496,8 @@ const AKTIONEN = {
     k.naechste = s.zeit + wegDauer(s, k, KUNDSCHAFTER_FELDER_PRO_MIN, e);
     s.kundschafter.push(k);
   },
-  tutorial(s, a) { s.tutorial = Math.max(s.tutorial, a.schritt | 0); },
+  tutorial(s, a) { s.tutorial = Math.max(s.tutorial || 0, a.schritt | 0); },
+  tutorialNeu(s) { s.tutorial = 0; },
   meldungenGelesen(s) { s.meldungen = []; },
 };
 

@@ -17,17 +17,19 @@ export const ZEITALTER = [
 
 // 8 Stufen. Zwei gleiche Einheiten gleicher Stufe ergeben eine Einheit der nächsten Stufe.
 export const STUFEN = [
-  { name: 'Normal', sterne: 0, farbe: '#9aa3ad', glanz: 0 },
-  { name: 'Bronze', sterne: 1, farbe: '#cd7f32', glanz: 0.15 },
-  { name: 'Silber', sterne: 2, farbe: '#c9d3dd', glanz: 0.25 },
-  { name: 'Gold', sterne: 3, farbe: '#ffc93c', glanz: 0.4 },
-  { name: 'Diamant', sterne: 4, farbe: '#7fe7ff', glanz: 0.55 },
-  { name: 'Rubin', sterne: 5, farbe: '#ff4d6d', glanz: 0.7 },
-  { name: 'Meister', sterne: 6, farbe: '#b26bff', glanz: 0.85 },
-  { name: 'Legende', sterne: 7, farbe: '#fff1a8', glanz: 1 },
+  { name: 'Normal', farbe: null, sterne: 0 },
+  { name: 'Rot', farbe: '#e8322a', sterne: 1 },
+  { name: 'Blau', farbe: '#2f6fe0', sterne: 2 },
+  { name: 'Schwarz', farbe: '#1c1c22', sterne: 3 },
+  { name: 'Silber', farbe: '#cfd6de', sterne: 4 },
+  { name: 'Gold', farbe: '#ffc61a', sterne: 5 },
+  { name: 'Regenbogen', farbe: 'regenbogen', sterne: 6 },
+  { name: 'Legende', farbe: 'legende', sterne: 7 },
 ];
+// Anzeigefarbe einer Stufe für die Oberfläche (Regenbogen als Verlauf)
+export const STUFE_CSS = [null, '#e8322a', '#2f6fe0', '#1c1c22', '#cfd6de', '#ffc61a', 'linear-gradient(90deg,#e8322a,#ff9a1a,#ffd21a,#3cc35a,#2f6fe0,#8a3fd6)', 'linear-gradient(90deg,#1c1c22,#ffc61a,#e8322a,#2f6fe0,#ffc61a,#1c1c22)'];
 export const STUFE_FAKTOR = 2.05; // Werte pro Stufe (etwas mehr als 2, damit Mergen sich lohnt)
-export const ROEMISCH = ['', 'I', 'II', 'III', 'IV', 'V', 'VI', 'VII'];
+export const ROEMISCH = ['', '', '', '', '', '', '', ''];
 
 // Strategische Rohstoffe (wie in Civilization). Sichtbar auf der Karte erst nach der Forschung.
 // dauer: Minuten Arbeit pro Ladung am Feld (je seltener, desto länger), ladung: Menge pro Ladung (Grundwert)

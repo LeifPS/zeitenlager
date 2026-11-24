@@ -30,7 +30,7 @@ class Haufen { // Min-Heap für Dijkstra
   }
 }
 
-export const SEITEN = { ol: 'oben links', or: 'oben rechts', ur: 'unten rechts', ul: 'unten links' };
+export const SEITEN = { ol: 'links', or: 'oben', ur: 'rechts', ul: 'unten' };
 
 /**
  * eingabe: { saat, seite, angreifer: [{id, typ, stufe}], basis: { gebaeude: [{id, typ, x, y, stufe}], einheiten: [{id, typ, stufe}] } }
@@ -69,13 +69,19 @@ export class Kampf {
     const proReihe = [[], [], []];
     for (const u of A) proReihe[reihe(u)].push(u);
     const seite = this.e.seite || 'ul';
+    // Aufstellung kurz vor dem Dorf (nicht am Kartenrand)
+    let bx0 = N, by0 = N, bx1 = 0, by1 = 0;
+    for (const b of this.gebaeude) { bx0 = Math.min(bx0, b.x); by0 = Math.min(by0, b.y); bx1 = Math.max(bx1, b.x + b.gr); by1 = Math.max(by1, b.y + b.gr); }
+    if (bx1 <= bx0) { bx0 = by0 = 8; bx1 = by1 = N - 8; }
+    const abstand = { ol: bx0, or: by0, ur: N - bx1, ul: N - by1 }[seite];
+    const versatz = Math.max(0, abstand - 3.2);
     for (let r = 0; r < 3; r++) {
       const liste = proReihe[r];
       const breite = Math.min(N - 6, Math.max(4, liste.length * 0.9));
       liste.forEach((u, k) => {
         const t = liste.length === 1 ? 0.5 : k / (liste.length - 1);
         const quer = N / 2 - breite / 2 + t * breite + (this.rnd() - 0.5) * 0.4;
-        const tief = 0.6 + r * 1.1 + this.rnd() * 0.3;
+        const tief = versatz + 0.6 + (2 - r) * 1.1 + this.rnd() * 0.3;
         let x, y;
         if (seite === 'ol') { x = tief; y = quer; } else if (seite === 'or') { x = quer; y = tief; } else if (seite === 'ur') { x = N - tief; y = quer; } else { x = quer; y = N - tief; }
         this.neueEinheit('a', u, x, y);
@@ -183,7 +189,7 @@ export class Kampf {
     if (d <= u.rw + (istGeb ? 0.05 : 0.35)) {
       u.laeuft = false;
       const zx = istGeb ? z.x + z.gr / 2 : z.x;
-      u.dir = (zx - u.x) - ((istGeb ? z.y + z.gr / 2 : z.y) - u.y) >= 0 ? 1 : -1;
+      u.dir = zx - u.x >= 0 ? 1 : -1;
       if (u.cd <= 0) { u.cd = u.rate; this.angriff(u, z); }
       return;
     }
@@ -233,7 +239,7 @@ export class Kampf {
     if (u.flug || this.begehbar(nx, ny)) { u.x = nx; u.y = ny; }
     else if (this.begehbar(nx, u.y)) u.x = nx; else if (this.begehbar(u.x, ny)) u.y = ny;
     u.laeuft = true; u.phase = (u.phase + DT * (1 + u.tempo * 0.7)) % 1;
-    if (Math.abs(dx - dy) > 0.01) u.dir = dx - dy > 0 ? 1 : -1;
+    if (Math.abs(dx) > 0.01) u.dir = dx > 0 ? 1 : -1;
   }
   angriff(u, z) {
     let s = u.schaden;

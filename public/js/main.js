@@ -1,6 +1,6 @@
 // Zeitenlager: Steuerung. Anmeldung, Abgleich mit dem Server, Spielschleife, Aktionen.
 import * as R from '../shared/regeln.js';
-import { GEBAEUDE, STUFEN, EINHEITEN, einheitMacht, ROEMISCH } from '../shared/daten.js';
+import { GEBAEUDE, STUFEN, EINHEITEN, einheitMacht } from '../shared/daten.js';
 import { api, token, setzeToken } from './api.js';
 import { Lager } from './lager.js';
 import { UI } from './ui.js';
@@ -129,7 +129,7 @@ class Spiel {
   einsammeln(b) {
     const r = this.aktion({ art: 'einsammeln', id: b.id });
     if (r && r.ok) {
-      if (r.menge > 0) { const g = GEBAEUDE[b.typ].gr; const [x, y] = iso(b.x + g / 2, b.y + g / 2); this.lager.effekt({ art: 'muenzen', x, y: y - 40, dauer: 0.9 }); this.lager.textBeiFeld(b.x + g / 2, b.y + g / 2, '+' + zahl(r.menge)); this.ton('gold'); }
+      if (r.menge > 0) { const g = GEBAEUDE[b.typ].gr; const [x, y] = iso(b.x + g / 2, b.y + g / 2); this.lager.effekt({ art: 'muenzen', x, y: y - 40, dauer: 0.9 }); this.lager.textBeiFeld(b.x + g / 2, b.y + g / 2, '+' + zahl(r.menge)); this.ton('gold'); this.tutorial?.ereignis('gold'); }
       else if (this.s.gold >= R.goldMax(this.s) - 1) this.ui.toast('Dein Goldlager ist voll. Baue Schatzkammern aus.', 'rot');
     }
   }
@@ -140,7 +140,8 @@ class Spiel {
     const r = this.aktion({ art: 'mergen', a: b.id, b: a.id });
     if (r && r.ok) {
       const st = STUFEN[r.stufe];
-      if (pos) { this.lager.effekt({ art: 'funken', x: pos[0], y: pos[1], farbe: st.farbe, dauer: 1 }); this.lager.effekt({ art: 'text', x: pos[0], y: pos[1] - 50, text: `${st.name}${r.stufe ? ' ' + ROEMISCH[r.stufe] : ''}!`, farbe: st.farbe, dauer: 1.6 }); }
+      const col = st.farbe && st.farbe.startsWith('#') ? (r.stufe === 3 ? '#fff' : st.farbe) : '#ffd23f';
+      if (pos) { this.lager.effekt({ art: 'funken', x: pos[0], y: pos[1], farbe: col, dauer: 1 }); this.lager.effekt({ art: 'text', x: pos[0], y: pos[1] - 60, text: `Stufe ${st.name}!`, farbe: col, dauer: 1.6 }); }
       this.ton('merge');
       this.tutorial?.ereignis('merge');
     }

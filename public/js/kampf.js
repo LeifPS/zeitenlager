@@ -1,5 +1,5 @@
 // Angriffe: Auswahl (Kampagne, Barbaren, Raid, Berichte), Vorschau mit Seitenwahl und Kampf-Wiedergabe.
-import { GEBAEUDE, EINHEITEN, ZEITALTER, ROHSTOFFE, LAGER_GROESSE, einheitMacht } from '../shared/daten.js';
+import { GEBAEUDE, EINHEITEN, ZEITALTER, ROHSTOFFE, LAGER_GROESSE, STUFE_CSS, einheitMacht } from '../shared/daten.js';
 import * as R from '../shared/regeln.js';
 import { Kampf, KAMPF_DAUER, DT } from '../shared/kampf.js';
 import { KAMPAGNE, erzeugeDorf, dorfMacht } from '../shared/barbaren.js';
@@ -11,7 +11,7 @@ import { kostenHtml } from './ui.js';
 import { Audio } from './audio.js';
 
 const N = LAGER_GROESSE;
-const SEITEN_NAMEN = { ol: 'oben links', or: 'oben rechts', ur: 'unten rechts', ul: 'unten links' };
+const SEITEN_NAMEN = { ol: 'links', or: 'oben', ur: 'rechts', ul: 'unten' };
 
 function beuteHtml(b) { return Object.entries(b || {}).filter(([k, v]) => v > 0 && (k === 'gold' || ROHSTOFFE[k])).map(([k, v]) => `<span class="kosten">${icon(k)}${zahl(v)}</span>`).join('') || '<span class="kosten">nichts</span>'; }
 
@@ -59,7 +59,7 @@ class KampfAnsicht {
     const ecken = [iso(x0, y0), iso(x1, y0), iso(x1, y1), iso(x0, y1)];
     const minX = Math.min(...ecken.map((e) => e[0])), maxX = Math.max(...ecken.map((e) => e[0])), minY = Math.min(...ecken.map((e) => e[1])) - 60, maxY = Math.max(...ecken.map((e) => e[1]));
     const z = Math.min((this.W - 40) / (maxX - minX), (this.H - 170) / (maxY - minY));
-    this.cam = { x: (minX + maxX) / 2, y: (minY + maxY) / 2 + 10, z: Math.max(0.5, Math.min(1.6, z)) };
+    this.cam = { x: (minX + maxX) / 2, y: (minY + maxY) / 2 + 10, z: Math.max(0.75, Math.min(1.7, z)) };
   }
   eingabe() {
     const cv = this.cv, zeiger = new Map(); let pinch = null;
@@ -80,7 +80,7 @@ class KampfAnsicht {
       const z = this.ziel;
       const meine = this.armee();
       const macht = meine.reduce((m, u) => m + einheitMacht(u.typ, u.stufe), 0);
-      oben.innerHTML = `<span class="chip">${esc(z.titel)}</span><span class="chip">${ZEITALTER[z.za].name}</span><span class="chip">${icon('armee')} Gegner ${zahl(z.macht ?? dorfMacht(z.basis))}</span><span class="chip">${icon('armee')} Du ${zahl(macht)}</span><button class="knopf klein" data-zu>${icon('x')}</button>`;
+      oben.innerHTML = `<span class="chip">${esc(z.titel)}</span><span class="chip">${ZEITALTER[z.za].name}</span><span class="chip">Gegner ${zahl(z.macht ?? dorfMacht(z.basis))}</span><span class="chip">Du ${zahl(macht)}</span><button class="knopf klein" data-zu>${icon('x')}</button>`;
       seiten.innerHTML = Object.keys(SEITEN_NAMEN).map((k) => `<button class="seiten-knopf ${k} ${k === this.seite ? 'an' : ''}" data-seite="${k}" title="Angriff von ${SEITEN_NAMEN[k]}">${icon('pfeilrechts')}</button>`).join('');
       unten.innerHTML = `<div class="kampf-armee">${this.armeeLeiste(meine)}</div><div class="kampf-info">Beute: ${beuteHtml(z.beute)}</div><button class="knopf gross rot" data-los ${meine.length ? '' : 'disabled'}>${icon('angriff')} Angriff!</button>`;
       oben.querySelector('[data-zu]').onclick = () => { this.spiel.ton('klick'); this.schliessen(); };
@@ -98,7 +98,7 @@ class KampfAnsicht {
   armeeLeiste(liste) {
     const g = new Map();
     for (const u of liste) { const k = u.typ + '|' + u.stufe; g.set(k, (g.get(k) || 0) + 1); }
-    return [...g.entries()].sort((a, b) => EINHEITEN[b[0].split('|')[0]].zeitalter - EINHEITEN[a[0].split('|')[0]].zeitalter).slice(0, 12).map(([k, n]) => { const [typ, st] = k.split('|'); return `<div class="ka-e"><img src="${einheitPortrait(typ, +st, 'blau', 48)}" alt=""><b>${n}</b>${+st ? sterneHtml(Math.min(5, +st), '#ffd23f') : ''}</div>`; }).join('') || '<span class="hinweis">Keine Einheiten bereit</span>';
+    return [...g.entries()].sort((a, b) => EINHEITEN[b[0].split('|')[0]].zeitalter - EINHEITEN[a[0].split('|')[0]].zeitalter).slice(0, 12).map(([k, n]) => { const [typ, st] = k.split('|'); return `<div class="ka-e"><img src="${einheitPortrait(typ, +st, 'blau', 48)}" alt=""><b>${n}</b>${+st ? `<i class="stufen-strich" style="--st:${STUFE_CSS[+st]}"></i>` : ''}</div>`; }).join('') || '<span class="hinweis">Keine Einheiten bereit</span>';
   }
   panel(html) { const p = this.el.querySelector('.vb-panel'); if (!p) return; p.innerHTML = html; p.hidden = !html; return p; }
 
@@ -132,7 +132,7 @@ class KampfAnsicht {
     const sterne = [0, 1, 2].map((i) => `<span class="gross-stern ${i < e.sterne ? 'an' : ''}">${icon('stern')}</span>`).join('');
     const p = this.panel(`<h3 class="${sieg ? 'sieg' : 'niederlage'}">${sieg ? 'Sieg!' : 'Niederlage'}</h3><div class="sterne-gross">${sterne}</div>
       <p><b>${e.prozent} %</b> zerstört · ${esc(this.titel || '')}</p>
-      ${this.wiederholung ? '' : `<p>Beute: ${beuteHtml(e.beute)}</p>${e.ruhm != null ? `<p>${icon('ruhm')} ${e.ruhm >= 0 ? '+' : ''}${e.ruhm} Ruhm</p>` : ''}${gef ? `<p class="hinweis">${icon('heilen')} ${gef} ${gef === 1 ? 'Einheit ist' : 'Einheiten sind'} verwundet und ${gef === 1 ? 'muss' : 'müssen'} geheilt werden.</p>` : ''}`}
+      ${this.wiederholung ? '' : `<p>Beute: ${beuteHtml(e.beute)}</p>${e.ruhm != null ? `<p>Ruhm ${e.ruhm >= 0 ? '+' : ''}${e.ruhm} Ruhm</p>` : ''}${gef ? `<p class="hinweis">${gef} ${gef === 1 ? 'Einheit ist' : 'Einheiten sind'} verwundet und ${gef === 1 ? 'muss' : 'müssen'} geheilt werden.</p>` : ''}`}
       <button class="knopf gross gruen" data-fertig>${icon('haken')} Zurück ins Lager</button>`);
     p.querySelector('[data-fertig]').onclick = () => { this.spiel.ton('klick'); this.schliessen(); this.spiel.tutorial?.ereignis('kampf'); };
     const oben = this.el.querySelector('.vb-oben'); if (oben) oben.querySelectorAll('[data-tempo],[data-skip]').forEach((x) => x.remove());
@@ -151,7 +151,7 @@ class KampfAnsicht {
       if (o) {
         const pz = o.querySelector('[data-prozent]'); if (pz) pz.textContent = `${k.prozent()} % zerstört`;
         const st = o.querySelector('[data-sterne]'); if (st) st.innerHTML = [0, 1, 2].map((i) => `<span class="mini-stern ${i < k.sterne() ? 'an' : ''}">${icon('stern')}</span>`).join('');
-        const z = o.querySelector('[data-zeit]'); if (z) z.innerHTML = `${icon('uhr')} ${dauer((KAMPF_DAUER - k.zeit) * 1000)}`;
+        const z = o.querySelector('[data-zeit]'); if (z) z.textContent = dauer((KAMPF_DAUER - k.zeit) * 1000);
       }
     }
     this.zeichne(t / 1000, dt);
@@ -183,8 +183,8 @@ class KampfAnsicht {
     if (this.modus === 'vorschau') this.seitenZone(c, t);
     const za = this.ziel ? this.ziel.za : Math.max(0, (k.zentrum ? k.zentrum.stufe : 1) - 1);
     const liste = [];
-    for (const b of k.gebaeude) liste.push({ tiefe: b.x + b.y + b.gr * 2 - 0.5, f: () => this.gebaeude(c, b, za) });
-    for (const u of k.einheiten) if (!u.tot) liste.push({ tiefe: u.x + u.y + 0.3 + (u.flug ? 100 : 0), f: () => this.einheit(c, u, t) });
+    for (const b of k.gebaeude) liste.push({ tiefe: b.y + b.gr - 0.05, f: () => this.gebaeude(c, b, za) });
+    for (const u of k.einheiten) if (!u.tot) liste.push({ tiefe: u.y + (u.flug ? 100 : 0), f: () => this.einheit(c, u, t) });
     liste.sort((a, b) => a.tiefe - b.tiefe);
     for (const e of liste) e.f();
     this.effekte = this.effekte.filter((e) => (e.zeit += dt * Math.min(this.tempo, 4)) < e.dauer);
@@ -223,15 +223,15 @@ class KampfAnsicht {
     if (!this._mm || this._mmK !== this.kampf) {
       this._mmK = this.kampf; this._mm = new Map();
       const pos = new Set(this.kampf.gebaeude.filter((g) => g.mauer).map((g) => g.x + ',' + g.y));
-      for (const g of this.kampf.gebaeude) if (g.mauer) this._mm.set(g.i, (pos.has((g.x + 1) + ',' + g.y) ? 1 : 0) | (pos.has(g.x + ',' + (g.y + 1)) ? 2 : 0));
+      for (const g of this.kampf.gebaeude) if (g.mauer) this._mm.set(g.i, (pos.has((g.x + 1) + ',' + g.y) ? 1 : 0) | (pos.has(g.x + ',' + (g.y + 1)) ? 2 : 0) | (pos.has((g.x - 1) + ',' + g.y) ? 4 : 0) | (pos.has(g.x + ',' + (g.y - 1)) ? 8 : 0));
     }
     return this._mm.get(b.i) || 0;
   }
   einheit(c, u, t) {
     const [x, y] = iso(u.x, u.y);
-    zeichneEinheit(c, x, y, u.typ, u.stufe, u.seite === 'a' ? 'blau' : 'rot', u.laeuft ? u.phase : 0.25, u.dir, { skala: 1.35 });
+    zeichneEinheit(c, x, y, u.typ, u.stufe, u.seite === 'a' ? 'blau' : 'rot', u.laeuft ? u.phase : 0.25, u.dir, { skala: 1.1 });
     if (u.hp < u.max) {
-      const h = einheitHoehe(u.typ) * 1.35 + 8, w = u.flug ? 22 : 18, p = Math.max(0, u.hp / u.max);
+      const h = einheitHoehe(u.typ) * 1.1 + 8, w = u.flug ? 22 : 18, p = Math.max(0, u.hp / u.max);
       c.fillStyle = RAND; c.fillRect(x - w / 2 - 1, y - h - 1, w + 2, 5);
       c.fillStyle = u.seite === 'a' ? '#5be38c' : '#ff6b5c'; c.fillRect(x - w / 2, y - h, w * p, 3);
     }
@@ -311,15 +311,15 @@ export function einbauen(spiel) {
       }
       const b = this.barbarenDaten;
       inhalt = !b ? '<p class="hinweis">Späher suchen Dörfer …</p>' : `<p class="hinweis">Dörfer in deiner Stärke. Neue Dörfer in ${dauer(b.neuIn - (Date.now() - this.barbarenGeladen))} oder wenn alle besiegt sind.</p><div class="raster dorf-raster">${b.barbaren.liste.map((d) => `
-        <button class="dorf-k ${d.besiegt ? 'besiegt' : ''}" data-dorf="${d.i}" ${d.besiegt ? 'disabled' : ''}><b>${esc(d.titel)}</b><small>${esc(d.name)} · ${ZEITALTER[d.za].name}</small><span>${icon('armee')} Stärke ${zahl(d.macht)}</span><span class="k">${beuteHtml(d.beute)}</span>${d.besiegt ? '<em>Besiegt</em>' : ''}</button>`).join('')}</div>`;
+        <button class="dorf-k ${d.besiegt ? 'besiegt' : ''}" data-dorf="${d.i}" ${d.besiegt ? 'disabled' : ''}><b>${esc(d.titel)}</b><small>${esc(d.name)} · ${ZEITALTER[d.za].name}</small><span>Stärke ${zahl(d.macht)}</span><span class="k">${beuteHtml(d.beute)}</span>${d.besiegt ? '<em>Besiegt</em>' : ''}</button>`).join('')}</div>`;
     } else if (tab === 'raid') {
       const schutz = Math.max(s.schildBis || 0, s.neulingBis || 0) - spiel.jetzt();
       const preis = Math.round(40 * Math.pow(2.3, R.zeitalter(s)));
       inhalt = `<p class="hinweis">Greif das Lager eines anderen Spielers an. Es wehrt sich mit seinen Türmen, Mauern und Einheiten. Du bekommst einen Teil seines Goldes und seiner Rohstoffe und gewinnst oder verlierst Ruhm.</p>
-        ${schutz > 0 ? `<p class="frage">${icon('schild')} Du bist noch ${dauer(schutz)} geschützt. Wenn du angreifst, endet dein Schutz.</p>` : ''}
-        <button class="knopf gross rot" data-suchen>${icon('kundschafter')} Gegner suchen (${icon('gold')} ${zahl(preis)})</button>
+        ${schutz > 0 ? `<p class="frage">Du bist noch ${dauer(schutz)} geschützt. Wenn du angreifst, endet dein Schutz.</p>` : ''}
+        <button class="knopf gross rot" data-suchen>Gegner suchen (${icon('gold')} ${zahl(preis)})</button>
         <div data-rang></div>`;
-      api('/rangliste').then((r) => { const el = document.querySelector('[data-rang]'); if (el && r.ok) el.innerHTML = `<h3>Rangliste</h3><table class="rang">${r.liste.slice(0, 20).map((x, i) => `<tr class="${x.ich ? 'ich' : ''}"><td>${i + 1}.</td><td>${esc(x.name)}</td><td>${ZEITALTER[x.zeitalter].name}</td><td>${icon('ruhm')} ${zahl(x.ruhm)}</td></tr>`).join('')}</table>`; });
+      api('/rangliste').then((r) => { const el = document.querySelector('[data-rang]'); if (el && r.ok) el.innerHTML = `<h3>Rangliste</h3><table class="rang">${r.liste.slice(0, 20).map((x, i) => `<tr class="${x.ich ? 'ich' : ''}"><td>${i + 1}.</td><td>${esc(x.name)}</td><td>${ZEITALTER[x.zeitalter].name}</td><td>Ruhm ${zahl(x.ruhm)}</td></tr>`).join('')}</table>`; });
     } else if (tab === 'berichte') {
       if (!this.berichte || Date.now() - this.berichteGeladen > 20000) {
         this.berichteGeladen = Date.now();
@@ -329,13 +329,13 @@ export function einbauen(spiel) {
       inhalt = !b ? '<p class="hinweis">Lädt …</p>' : b.liste.length ? `<div class="berichte">${b.liste.map((x) => {
         const e = x.ergebnis, angr = x.art === 'barbar' || x.angreiferName === b.ich;
         const titel = x.art === 'barbar' ? `Angriff auf ${esc(x.name)}` : angr ? `Raid auf ${esc(x.verteidigerName)}` : `${esc(x.angreiferName)} hat dich angegriffen`;
-        return `<div class="bericht ${angr ? '' : 'verteidigung'}"><div><b>${titel}</b><small>${new Date(x.t).toLocaleString('de-DE', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })} · ${e.prozent} % · ${[0, 1, 2].map((i) => `<span class="mini-stern ${i < e.sterne ? 'an' : ''}">${icon('stern')}</span>`).join('')}${e.ruhm != null ? ` · ${icon('ruhm')} ${angr ? (e.ruhm >= 0 ? '+' : '') + e.ruhm : (e.ruhm > 0 ? '-' : '+') + Math.abs(e.ruhm)}` : ''}</small><span class="k">${angr ? 'Beute' : 'Verloren'}: ${beuteHtml(e.beute)}</span></div><button class="knopf klein2" data-ansehen="${x.id}">${icon('auge')} Ansehen</button></div>`;
+        return `<div class="bericht ${angr ? '' : 'verteidigung'}"><div><b>${titel}</b><small>${new Date(x.t).toLocaleString('de-DE', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })} · ${e.prozent} % · ${[0, 1, 2].map((i) => `<span class="mini-stern ${i < e.sterne ? 'an' : ''}">${icon('stern')}</span>`).join('')}${e.ruhm != null ? ` · Ruhm ${angr ? (e.ruhm >= 0 ? '+' : '') + e.ruhm : (e.ruhm > 0 ? '-' : '+') + Math.abs(e.ruhm)}` : ''}</small><span class="k">${angr ? 'Beute' : 'Verloren'}: ${beuteHtml(e.beute)}</span></div><button class="knopf klein2" data-ansehen="${x.id}">Ansehen</button></div>`;
       }).join('')}</div>` : '<p class="hinweis">Noch keine Kämpfe.</p>';
     }
     return {
       titel: 'Angriff', klasse: 'breit',
       html: `<div class="tabs">${tabs.map(([k, t]) => `<button class="tab ${k === tab ? 'an' : ''}" data-at="${k}">${t}</button>`).join('')}</div>
-        <div class="leiste-info"><span>${icon('armee')} ${gesund} bereit · Stärke ${zahl(spiel.macht())}</span>${verw ? `<span class="verw">${icon('heilen')} ${verw} verwundet</span>` : ''}</div>${inhalt}`,
+        <div class="leiste-info"><span>${gesund} Einheiten bereit · Stärke ${zahl(spiel.macht())}</span>${verw ? `<span class="verw">${verw} verwundet</span>` : ''}</div>${inhalt}`,
       nach: (el) => {
         el.querySelectorAll('[data-at]').forEach((b) => b.onclick = () => { spiel.ton('klick'); this.oeffne('angriff', b.dataset.at); });
         el.querySelectorAll('[data-kamp]').forEach((b) => b.onclick = () => {

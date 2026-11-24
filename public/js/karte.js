@@ -22,7 +22,7 @@ class Karte {
   get s() { return this.spiel.s; }
   oeffnen(ziel) {
     this.el.hidden = false; this.spiel.verdeckt = true;
-    this.el.innerHTML = `<canvas></canvas><div class="vb-oben"><span class="chip" data-hw></span><span class="chip" data-ks></span><button class="knopf klein" data-zu title="Zurück zum Lager">${icon('x')}</button></div><div class="vb-panel" hidden></div><div class="vb-unten"><button class="knopf" data-heim>${icon('bauen')} Mein Lager</button><button class="knopf" data-liste>${icon('handwerker')} Handwerker</button></div>`;
+    this.el.innerHTML = `<canvas></canvas><div class="vb-oben"><span class="chip" data-hw></span><span class="chip" data-ks></span><button class="knopf klein" data-zu title="Zurück zum Lager">${icon('x')}</button></div><div class="vb-panel" hidden></div><div class="vb-unten"><button class="knopf" data-heim>Mein Lager</button><button class="knopf" data-liste>Unterwegs</button></div>`;
     this.cv = this.el.querySelector('canvas'); this.c = this.cv.getContext('2d');
     this.panel = this.el.querySelector('.vb-panel');
     this.el.querySelector('[data-zu]').onclick = () => this.schliessen();
@@ -43,8 +43,8 @@ class Karte {
   chips() {
     const s = this.s, e = R.effekte(s);
     const hw = this.el.querySelector('[data-hw]'); if (!hw) return;
-    hw.innerHTML = `${icon('handwerker')} ${s.handwerker.filter((h) => !h.stopp).length}/${R.handwerkerAnzahl(s, e)} Handwerker`;
-    this.el.querySelector('[data-ks]').innerHTML = `${icon('kundschafter')} ${s.kundschafter.length}/${e.kundschafter} Kundschafter`;
+    hw.textContent = `Handwerker ${s.handwerker.filter((h) => !h.stopp).length}/${R.handwerkerAnzahl(s, e)}`;
+    this.el.querySelector('[data-ks]').textContent = `Kundschafter ${s.kundschafter.length}/${e.kundschafter}`;
   }
   resize() { this.dpr = Math.min(2, devicePixelRatio || 1); this.W = innerWidth; this.H = innerHeight; this.cv.width = this.W * this.dpr; this.cv.height = this.H * this.dpr; this.cv.style.width = this.W + 'px'; this.cv.style.height = this.H + 'px'; }
   zuBild(x, y) { const k = T * this.cam.z; return [(x - this.cam.x) * k + this.W / 2, (y - this.cam.y) * k + this.H / 2]; }
@@ -133,7 +133,6 @@ class Karte {
     else { x = bx + Math.sin(jetzt / 200) * 3; y = by - 6; }
     c.fillStyle = col; c.strokeStyle = RAND; c.lineWidth = 2;
     c.beginPath(); c.arc(x, y, 8, 0, 7); c.fill(); c.stroke();
-    const img = iconBild(art); if (img.complete) c.drawImage(img, x - 7, y - 7, 14, 14);
     if (h.phase === 'zurueck' && h.res) { const im = iconBild(h.res); if (im.complete) c.drawImage(im, x + 4, y - 14, 12, 12); }
   }
 
@@ -171,7 +170,7 @@ class Karte {
     else if (!sieht) {
       const weg = dist / (KUNDSCHAFTER_FELDER_PRO_MIN * (1 + e.handwerkerTempo)) * 60000;
       html = `<h3>Unerkundetes Land</h3><p class="hinweis">Ein Kundschafter deckt hier ${KUNDSCHAFT_SICHT} Felder im Umkreis auf. Weg: ${dauer(weg)}.</p>
-        <button class="knopf blau" data-ks ${s.kundschafter.length >= e.kundschafter ? 'disabled' : ''}>${icon('kundschafter')} Kundschafter schicken</button>`;
+        <button class="knopf blau" data-ks ${s.kundschafter.length >= e.kundschafter ? 'disabled' : ''}>Kundschafter schicken</button>`;
     } else if (r && e.sicht.has(r)) {
       const st = R.handwerkerStufe(s);
       const tempo = HANDWERKER_FELDER_PRO_MIN * handwerkerTempo(st) * (1 + e.handwerkerTempo);
@@ -182,12 +181,14 @@ class Karte {
       html = `<h3><span class="ressym gross">${icon(r)}</span> ${ROHSTOFFE[r].name}-Feld</h3>
         <p class="hinweis">Liefert unbegrenzt. Pro Runde: ${dauer(weg)} hin, ${dauer(arbeit)} Arbeit, ${dauer(weg)} zurück, Ertrag <b>${ladung} ${ROHSTOFFE[r].name}</b>. Handwerker laufen immer wieder, solange du in den letzten 2 Stunden im Spiel warst.</p>
         ${hier.length ? `<p>${hier.length} Handwerker arbeiten hier.</p>` : ''}
-        <button class="knopf gruen" data-hw ${frei < 1 ? 'disabled' : ''}>${icon('handwerker')} Handwerker schicken (${Math.max(0, frei)} frei)</button>
+        <button class="knopf gruen" data-hw ${frei < 1 ? 'disabled' : ''}>Handwerker schicken (${Math.max(0, frei)} frei)</button>
         ${hier.filter((h) => !h.stopp).length ? `<button class="knopf rot" data-zurueck="${hier.find((h) => !h.stopp).id}">Einen zurückrufen</button>` : ''}`;
     } else if (r) html = `<h3>${BIOME[b].name}</h3><p class="hinweis">Hier liegt etwas im Boden, das du noch nicht kennst. Forsche weiter!</p>`;
     else html = `<h3>${BIOME[b].name}</h3><p class="hinweis">Kein Rohstoff auf diesem Feld. Entfernung: ${dist.toFixed(1)} Felder.</p>`;
     const n = this.nachbarn.find((q) => q.x === x && q.y === y);
-    if (n && sieht) html = `<h3>${esc(n.name)}</h3><p>Lager eines anderen Spielers · ${ZEITALTER[n.zeitalter]?.name} · ${icon('ruhm')} ${zahl(n.ruhm)}</p>`;
+    if (n && sieht) html = `<h3>${esc(n.name)}</h3><p>Lager eines anderen Spielers · ${ZEITALTER[n.zeitalter]?.name} · Ruhm ${zahl(n.ruhm)}</p>`;
+    if (nurAktualisieren && html === this.panelHtml) return;
+    this.panelHtml = html;
     this.panel.innerHTML = html; this.panel.hidden = false;
     const ks = this.panel.querySelector('[data-ks]'); if (ks) ks.onclick = () => this.spiel.aktion({ art: 'kundschafterSchicken', x, y }, () => { this.spiel.ton('karte'); this.chips(); this.zeigeFeld(x, y, true); });
     const hw = this.panel.querySelector('[data-hw]'); if (hw) hw.onclick = () => this.spiel.aktion({ art: 'handwerkerSchicken', x, y }, () => { this.spiel.ton('klick'); this.chips(); this.zeigeFeld(x, y, true); this.spiel.tutorial?.ereignis('handwerker'); });
@@ -197,7 +198,7 @@ class Karte {
     const s = this.s, jetzt = this.spiel.jetzt();
     this.wahl = null;
     const zeilen = s.handwerker.map((h) => `<div class="hw-z"><span class="ressym">${icon(h.res)}</span> ${ROHSTOFFE[h.res].name} (${h.x}|${h.y}) · ${h.phase === 'hin' ? 'unterwegs' : h.phase === 'arbeit' ? 'arbeitet' : 'kommt zurück'} · ${dauer(h.naechste - jetzt)}${h.stopp ? ' · kehrt heim' : ''} <button class="knopf klein2" data-geh="${h.x},${h.y}">Zeigen</button></div>`).join('');
-    const ks = s.kundschafter.map((k) => `<div class="hw-z">${icon('kundschafter')} Kundschafter (${k.x}|${k.y}) · ${k.phase === 'hin' ? 'erkundet' : 'kommt zurück'} · ${dauer(k.naechste - jetzt)}</div>`).join('');
+    const ks = s.kundschafter.map((k) => `<div class="hw-z">Kundschafter (${k.x}|${k.y}) · ${k.phase === 'hin' ? 'erkundet' : 'kommt zurück'} · ${dauer(k.naechste - jetzt)}</div>`).join('');
     this.panel.innerHTML = `<h3>Unterwegs</h3>${zeilen || ''}${ks || ''}${!zeilen && !ks ? '<p class="hinweis">Niemand ist unterwegs. Tippe ein Rohstoff-Feld an, um einen Handwerker zu schicken, oder ein dunkles Feld für einen Kundschafter.</p>' : ''}`;
     this.panel.hidden = false;
     this.panel.querySelectorAll('[data-geh]').forEach((b) => b.onclick = () => { const [x, y] = b.dataset.geh.split(',').map(Number); this.cam.x = x; this.cam.y = y; this.zeigeFeld(x, y); });
